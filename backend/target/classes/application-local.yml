@@ -1,0 +1,15 @@
+# Local environment overrides
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5433/hrms
+    username: postgres
+    password: ${DB_PASSWORD:8283}
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
