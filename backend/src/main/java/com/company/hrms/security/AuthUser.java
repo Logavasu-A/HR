@@ -1,4 +1,4 @@
-package com.company.hrms.security.principal;
+package com.company.hrms.security;
 
 import java.util.Set;
 

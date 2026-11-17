@@ -1,4 +1,16 @@
-package com.company.hrms.modules.payroll.controller;
+package com.company.hrms.payroll.controller;
+
+import com.company.hrms.payroll.model.PayrollRun;
+import com.company.hrms.payroll.model.SalaryAssignment;
+import com.company.hrms.payroll.model.SalaryComponent;
+import com.company.hrms.payroll.model.SalarySlip;
+import com.company.hrms.payroll.model.SalaryStructure;
+import com.company.hrms.payroll.repository.PayrollRunRepo;
+import com.company.hrms.payroll.repository.SalaryAssignmentRepo;
+import com.company.hrms.payroll.repository.SalaryComponentRepo;
+import com.company.hrms.payroll.repository.SalarySlipRepo;
+import com.company.hrms.payroll.repository.SalaryStructureRepo;
+import com.company.hrms.payroll.service.PayrollService;
 
 import java.util.List;
 
@@ -10,19 +22,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.company.hrms.common.base.CrudController;
-import com.company.hrms.common.exception.ApiException;
-import com.company.hrms.modules.payroll.entity.PayrollRun;
-import com.company.hrms.modules.payroll.entity.SalaryAssignment;
-import com.company.hrms.modules.payroll.entity.SalaryComponent;
-import com.company.hrms.modules.payroll.entity.SalarySlip;
-import com.company.hrms.modules.payroll.entity.SalaryStructure;
-import com.company.hrms.modules.payroll.repository.SalaryComponentRepo;
-import com.company.hrms.modules.payroll.repository.SalaryStructureRepo;
-import com.company.hrms.modules.payroll.repository.SalaryAssignmentRepo;
-import com.company.hrms.modules.payroll.repository.PayrollRunRepo;
-import com.company.hrms.modules.payroll.repository.SalarySlipRepo;
-import com.company.hrms.modules.payroll.service.PayrollService;
+import com.company.hrms.common.CrudController;
+import com.company.hrms.common.ApiException;
 
 public class PayrollControllers {
 

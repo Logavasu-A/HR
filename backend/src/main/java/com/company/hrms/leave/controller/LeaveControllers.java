@@ -1,4 +1,14 @@
-package com.company.hrms.modules.leave.controller;
+package com.company.hrms.leave.controller;
+
+import com.company.hrms.leave.model.HolidayList;
+import com.company.hrms.leave.model.LeaveAllocation;
+import com.company.hrms.leave.model.LeaveApplication;
+import com.company.hrms.leave.model.LeaveType;
+import com.company.hrms.leave.repository.HolidayListRepo;
+import com.company.hrms.leave.repository.LeaveAllocationRepo;
+import com.company.hrms.leave.repository.LeaveApplicationRepo;
+import com.company.hrms.leave.repository.LeaveTypeRepo;
+import com.company.hrms.leave.service.LeaveService;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -11,18 +21,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.company.hrms.common.base.CrudController;
-import com.company.hrms.common.enums.ApprovalStatus;
-import com.company.hrms.common.exception.ApiException;
-import com.company.hrms.modules.leave.entity.HolidayList;
-import com.company.hrms.modules.leave.entity.LeaveAllocation;
-import com.company.hrms.modules.leave.entity.LeaveApplication;
-import com.company.hrms.modules.leave.entity.LeaveType;
-import com.company.hrms.modules.leave.repository.HolidayListRepo;
-import com.company.hrms.modules.leave.repository.LeaveTypeRepo;
-import com.company.hrms.modules.leave.repository.LeaveAllocationRepo;
-import com.company.hrms.modules.leave.repository.LeaveApplicationRepo;
-import com.company.hrms.modules.leave.service.LeaveService;
+import com.company.hrms.common.CrudController;
+import com.company.hrms.common.ApprovalStatus;
+import com.company.hrms.common.ApiException;
 
 public class LeaveControllers {
 

@@ -1,10 +1,10 @@
-package com.company.hrms.modules.payroll.entity;
+package com.company.hrms.payroll.model;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.company.hrms.common.base.BaseEntity;
+import com.company.hrms.common.BaseEntity;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

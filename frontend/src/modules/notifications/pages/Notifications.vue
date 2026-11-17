@@ -1,7 +1,7 @@
 <script setup>
 import { onMounted, ref } from 'vue'
-import api from '@/services/api'
-import { errorMessage } from '@/utils'
+import { list, markAllRead, markRead } from '../services/notificationService'
+import { errorMessage } from '@/shared/utils'
 
 const items = ref([])
 const error = ref('')
@@ -9,7 +9,7 @@ const loading = ref(true)
 
 async function load() {
   try {
-    const { data } = await api.get('/notifications')
+    const data = await list()
     items.value = data.items
   } catch (e) {
     error.value = errorMessage(e)
@@ -20,7 +20,7 @@ async function load() {
 
 async function markAll() {
   try {
-    await api.post('/notifications/read-all')
+    await markAllRead()
     await load()
   } catch (e) {
     error.value = errorMessage(e)
@@ -30,7 +30,7 @@ async function markAll() {
 async function markOne(n) {
   if (n.read) return
   try {
-    await api.post(`/notifications/${n.id}/read`)
+    await markRead(n.id)
     n.read = true
   } catch (e) {
     error.value = errorMessage(e)

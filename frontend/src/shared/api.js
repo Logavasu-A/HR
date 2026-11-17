@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { auth, clearSession } from '@/stores/auth'
+import { auth, clearSession } from '@/shared/auth'
 
 const api = axios.create({ baseURL: '/api' })
 

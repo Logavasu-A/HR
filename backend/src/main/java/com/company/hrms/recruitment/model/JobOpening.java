@@ -1,10 +1,10 @@
-package com.company.hrms.modules.recruitment.entity;
+package com.company.hrms.recruitment.model;
 
 import java.time.LocalDate;
 
-import com.company.hrms.common.base.BaseEntity;
-import com.company.hrms.modules.organization.entity.Department;
-import com.company.hrms.modules.organization.entity.Designation;
+import com.company.hrms.common.BaseEntity;
+import com.company.hrms.organization.model.Department;
+import com.company.hrms.organization.model.Designation;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

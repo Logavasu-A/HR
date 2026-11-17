@@ -1,7 +1,7 @@
 <script setup>
 import { onMounted, ref } from 'vue'
-import api from '@/services/api'
-import { errorMessage, pretty } from '@/utils'
+import * as me from '../services/selfService'
+import { errorMessage, pretty } from '@/shared/utils'
 
 const profile = ref(null)
 const today = ref(null)
@@ -13,9 +13,9 @@ async function load() {
   error.value = ''
   try {
     const [p, t, b] = await Promise.all([
-      api.get('/me/profile'),
-      api.get('/me/attendance/today'),
-      api.get('/me/leave-balance'),
+      me.getProfile(),
+      me.getTodayAttendance(),
+      me.getLeaveBalance(),
     ])
     profile.value = p.data
     today.value = t.data || null
@@ -29,8 +29,7 @@ async function punch(kind) {
   busy.value = true
   error.value = ''
   try {
-    const { data } = await api.post(`/me/${kind}`)
-    today.value = data
+    today.value = await me.punch(kind)
   } catch (e) {
     error.value = errorMessage(e)
   } finally {

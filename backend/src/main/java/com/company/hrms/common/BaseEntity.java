@@ -1,4 +1,4 @@
-package com.company.hrms.common.base;
+package com.company.hrms.common;
 
 import java.time.LocalDateTime;
 

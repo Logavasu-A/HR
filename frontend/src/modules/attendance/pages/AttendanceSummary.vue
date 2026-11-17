@@ -1,7 +1,7 @@
 <script setup>
 import { onMounted, ref, watch } from 'vue'
-import api from '@/services/api'
-import { errorMessage, MONTHS } from '@/utils'
+import { getMonthlySummary } from '../services/attendanceService'
+import { errorMessage, MONTHS } from '@/shared/utils'
 
 const now = new Date()
 const year = ref(now.getFullYear())
@@ -14,8 +14,7 @@ async function load() {
   loading.value = true
   error.value = ''
   try {
-    const { data } = await api.get('/attendance/summary', { params: { year: year.value, month: month.value } })
-    rows.value = data
+    rows.value = await getMonthlySummary(year.value, month.value)
   } catch (e) {
     error.value = errorMessage(e)
   } finally {

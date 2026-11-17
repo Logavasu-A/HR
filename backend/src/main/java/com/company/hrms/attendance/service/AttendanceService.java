@@ -1,4 +1,7 @@
-package com.company.hrms.modules.attendance.service;
+package com.company.hrms.attendance.service;
+
+import com.company.hrms.attendance.model.Attendance;
+import com.company.hrms.attendance.repository.AttendanceRepo;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -15,13 +18,10 @@ import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.company.hrms.common.exception.ApiException;
-import com.company.hrms.modules.attendance.entity.Attendance;
-import com.company.hrms.modules.attendance.repository.ShiftTypeRepo;
-import com.company.hrms.modules.attendance.repository.AttendanceRepo;
-import com.company.hrms.modules.employee.entity.Employee;
-import com.company.hrms.modules.employee.repository.EmployeeRepo;
-import com.company.hrms.modules.employee.service.EmployeeService;
+import com.company.hrms.common.ApiException;
+import com.company.hrms.employee.model.Employee;
+import com.company.hrms.employee.repository.EmployeeRepo;
+import com.company.hrms.employee.service.EmployeeService;
 
 import lombok.RequiredArgsConstructor;
 

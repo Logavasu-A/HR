@@ -1,4 +1,4 @@
-package com.company.hrms.security.jwt;
+package com.company.hrms.security;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;

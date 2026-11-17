@@ -1,4 +1,4 @@
-package com.company.hrms.security.jwt;
+package com.company.hrms.security;
 
 import java.io.IOException;
 import java.util.List;
@@ -9,10 +9,9 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import com.company.hrms.modules.admin.entity.AppUser;
-import com.company.hrms.modules.admin.repository.UserRepo;
-import com.company.hrms.modules.admin.repository.RoleRepo;
-import com.company.hrms.security.principal.AuthUser;
+import com.company.hrms.admin.model.AppUser;
+import com.company.hrms.admin.repository.UserRepo;
+import com.company.hrms.admin.repository.RoleRepo;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

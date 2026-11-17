@@ -1,9 +1,9 @@
-package com.company.hrms.modules.recruitment.entity;
+package com.company.hrms.recruitment.model;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
-import com.company.hrms.common.base.BaseEntity;
+import com.company.hrms.common.BaseEntity;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

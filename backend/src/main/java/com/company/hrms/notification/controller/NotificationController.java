@@ -1,4 +1,7 @@
-package com.company.hrms.modules.notification.controller;
+package com.company.hrms.notification.controller;
+
+import com.company.hrms.notification.model.Notification;
+import com.company.hrms.notification.repository.NotificationRepo;
 
 import java.util.List;
 import java.util.Map;
@@ -9,10 +12,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.company.hrms.common.exception.ApiException;
-import com.company.hrms.modules.notification.entity.Notification;
-import com.company.hrms.modules.notification.repository.NotificationRepo;
-import com.company.hrms.security.principal.CurrentUser;
+import com.company.hrms.common.ApiException;
+import com.company.hrms.security.CurrentUser;
 
 @RestController
 @RequestMapping("/api/notifications")

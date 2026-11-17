@@ -1,4 +1,4 @@
-package com.company.hrms.modules.expense.entity;
+package com.company.hrms.expense.model;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -6,9 +6,9 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.company.hrms.common.base.BaseEntity;
-import com.company.hrms.common.enums.ApprovalStatus;
-import com.company.hrms.modules.employee.entity.Employee;
+import com.company.hrms.common.BaseEntity;
+import com.company.hrms.common.ApprovalStatus;
+import com.company.hrms.employee.model.Employee;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;

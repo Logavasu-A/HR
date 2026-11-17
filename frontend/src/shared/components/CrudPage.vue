@@ -1,8 +1,8 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
-import api from '@/services/api'
-import { can } from '@/stores/auth'
-import { errorMessage, getPath, money, pretty } from '@/utils'
+import api from '@/shared/api'
+import { can } from '@/shared/auth'
+import { errorMessage, getPath, money, pretty } from '@/shared/utils'
 import FieldInput from './FieldInput.vue'
 
 const props = defineProps({ config: { type: Object, required: true } })
@@ -41,6 +41,11 @@ function cell(col, row) {
   if (typeof v === 'string' && /^[A-Z][A-Z_]+$/.test(v)) return pretty(v)
   if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(v)) return v.replace('T', ' ').slice(0, 16)
   return v
+}
+
+// short values such as codes and dates should stay on one line
+function isShort(col, row) {
+  return String(cell(col, row)).length <= 16
 }
 
 function badgeClass(col, row) {
@@ -201,13 +206,16 @@ onMounted(load)
           </tr>
         </thead>
         <tbody>
-          <tr v-if="loading"><td :colspan="colspan" class="muted">Loading…</td></tr>
+          <tr v-if="loading"><td :colspan="colspan" class="empty">Loading…</td></tr>
           <tr v-else-if="!filtered.length">
-            <td :colspan="colspan" class="muted">{{ rows.length ? 'Nothing matches the search.' : 'No records yet.' }}</td>
+            <td :colspan="colspan" class="empty">
+              <span class="empty-icon">{{ rows.length ? '🔍' : '📭' }}</span>
+              {{ rows.length ? 'Nothing matches the search.' : 'No records yet.' }}
+            </td>
           </tr>
           <template v-else>
             <tr v-for="row in filtered" :key="row.id">
-              <td v-for="c in config.columns" :key="c.key" :class="{ num: c.money }">
+              <td v-for="c in config.columns" :key="c.key" :class="{ num: c.money, nowrap: isShort(c, row) }">
                 <span :class="badgeClass(c, row)">{{ cell(c, row) }}</span>
               </td>
               <td v-if="hasActionColumn" class="actions">
@@ -222,6 +230,7 @@ onMounted(load)
           </template>
         </tbody>
       </table>
+      <div v-if="!loading && rows.length" class="record-count">{{ filtered.length }} of {{ rows.length }} records</div>
     </div>
 
     <div v-if="showForm" class="modal-backdrop" @click.self="showForm = false">

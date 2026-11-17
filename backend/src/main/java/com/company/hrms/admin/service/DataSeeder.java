@@ -1,4 +1,9 @@
-package com.company.hrms.modules.admin.service;
+package com.company.hrms.admin.service;
+
+import com.company.hrms.admin.model.AppUser;
+import com.company.hrms.admin.model.Role;
+import com.company.hrms.admin.repository.RoleRepo;
+import com.company.hrms.admin.repository.UserRepo;
 
 import java.util.Set;
 
@@ -10,10 +15,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.company.hrms.modules.admin.entity.AppUser;
-import com.company.hrms.modules.admin.entity.Role;
-import com.company.hrms.modules.admin.repository.UserRepo;
-import com.company.hrms.modules.admin.repository.RoleRepo;
 
 /**
  * Initializes essential security roles and default admin if missing from the DB.

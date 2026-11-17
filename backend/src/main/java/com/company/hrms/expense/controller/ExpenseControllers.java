@@ -1,4 +1,12 @@
-package com.company.hrms.modules.expense.controller;
+package com.company.hrms.expense.controller;
+
+import com.company.hrms.expense.model.EmployeeAdvance;
+import com.company.hrms.expense.model.ExpenseClaim;
+import com.company.hrms.expense.model.ExpenseType;
+import com.company.hrms.expense.repository.EmployeeAdvanceRepo;
+import com.company.hrms.expense.repository.ExpenseClaimRepo;
+import com.company.hrms.expense.repository.ExpenseTypeRepo;
+import com.company.hrms.expense.service.ExpenseService;
 
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -6,16 +14,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.company.hrms.common.base.CrudController;
-import com.company.hrms.common.enums.ApprovalStatus;
-import com.company.hrms.common.exception.ApiException;
-import com.company.hrms.modules.expense.entity.EmployeeAdvance;
-import com.company.hrms.modules.expense.entity.ExpenseClaim;
-import com.company.hrms.modules.expense.entity.ExpenseType;
-import com.company.hrms.modules.expense.repository.ExpenseTypeRepo;
-import com.company.hrms.modules.expense.repository.ExpenseClaimRepo;
-import com.company.hrms.modules.expense.repository.EmployeeAdvanceRepo;
-import com.company.hrms.modules.expense.service.ExpenseService;
+import com.company.hrms.common.CrudController;
+import com.company.hrms.common.ApprovalStatus;
+import com.company.hrms.common.ApiException;
 
 public class ExpenseControllers {
 

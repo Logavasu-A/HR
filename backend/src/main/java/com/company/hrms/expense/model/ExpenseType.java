@@ -1,6 +1,6 @@
-package com.company.hrms.modules.expense.entity;
+package com.company.hrms.expense.model;
 
-import com.company.hrms.common.base.BaseEntity;
+import com.company.hrms.common.BaseEntity;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;

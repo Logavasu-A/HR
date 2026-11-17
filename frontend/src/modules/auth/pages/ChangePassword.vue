@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue'
-import api from '@/services/api'
-import { errorMessage } from '@/utils'
+import { changePassword } from '../services/authService'
+import { errorMessage } from '@/shared/utils'
 
 const currentPassword = ref('')
 const newPassword = ref('')
@@ -19,7 +19,7 @@ async function save() {
   }
   busy.value = true
   try {
-    await api.post('/auth/change-password', { currentPassword: currentPassword.value, newPassword: newPassword.value })
+    await changePassword(currentPassword.value, newPassword.value)
     done.value = true
     currentPassword.value = ''
     newPassword.value = ''

@@ -1,4 +1,4 @@
-package com.company.hrms.common.base;
+package com.company.hrms.common;
 
 import java.util.List;
 
@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
-import com.company.hrms.common.exception.ApiException;
 
 import jakarta.validation.Valid;
 

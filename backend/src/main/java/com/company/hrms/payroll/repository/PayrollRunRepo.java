@@ -1,4 +1,6 @@
-package com.company.hrms.modules.payroll.repository;
+package com.company.hrms.payroll.repository;
+
+import com.company.hrms.payroll.model.PayrollRun;
 
 import java.util.List;
 import java.util.Optional;
@@ -6,7 +8,6 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import com.company.hrms.modules.payroll.entity.PayrollRun;
 
 @Repository
 public interface PayrollRunRepo extends JpaRepository<PayrollRun, Long> {

@@ -1,12 +1,17 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import api from '@/services/api'
-import { auth, can, clearSession, isEmployee } from '@/stores/auth'
-import { resources, selfResources } from '@/constants/resources'
+import { list as listNotifications } from '@/modules/notifications/services/notificationService'
+import { auth, can, clearSession, isEmployee } from '@/shared/auth'
+import { resources, selfResources } from '@/modules'
 
 const router = useRouter()
 const unread = ref(0)
+const menuOpen = ref(false)
+const displayName = computed(() => auth.user?.employeeName || auth.user?.username || '')
+const initials = computed(() =>
+  (displayName.value || '?').split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase(),
+)
 let timer = null
 
 // Sidebar: only the screens this user's role can read.
@@ -33,7 +38,7 @@ const groups = computed(() => {
 
 async function loadUnread() {
   try {
-    const { data } = await api.get('/notifications')
+    const data = await listNotifications()
     unread.value = data.unread
   } catch {
     // the bell is not essential; ignore failures here
@@ -54,9 +59,14 @@ onUnmounted(() => clearInterval(timer))
 
 <template>
   <div class="shell">
-    <aside class="sidebar">
-      <div class="brand">HRMS</div>
-      <nav>
+    <aside class="sidebar" :class="{ open: menuOpen }">
+      <div class="brand">
+        <span class="brand-mark">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </span>
+        HRMS
+      </div>
+      <nav @click="menuOpen = false">
         <div v-for="g in groups" :key="g.name" class="nav-group">
           <div class="nav-title">{{ g.name }}</div>
           <router-link v-for="item in g.list" :key="item.path" :to="item.path">{{ item.title }}</router-link>
@@ -66,11 +76,19 @@ onUnmounted(() => clearInterval(timer))
 
     <div class="main">
       <header class="topbar">
+        <button class="btn small menu-btn" @click="menuOpen = !menuOpen">☰ Menu</button>
         <div class="spacer"></div>
-        <router-link to="/notifications" class="bell">
-          Notifications<span v-if="unread" class="count">{{ unread }}</span>
+        <router-link to="/notifications" class="bell" title="Notifications">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span v-if="unread" class="count">{{ unread }}</span>
         </router-link>
-        <router-link to="/change-password" class="who">{{ auth.user?.name }} · {{ auth.user?.role }}</router-link>
+        <router-link to="/change-password" class="who" title="Change password">
+          <span class="avatar">{{ initials }}</span>
+          <span class="who-text">
+            <span class="who-name">{{ displayName }}</span>
+            <span class="who-role">{{ String(auth.user?.role || '').toLowerCase().replace(/_/g, ' ') }}</span>
+          </span>
+        </router-link>
         <button class="btn small" @click="logout">Log out</button>
       </header>
       <main class="content">

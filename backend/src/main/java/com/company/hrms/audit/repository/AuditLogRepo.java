@@ -1,11 +1,12 @@
-package com.company.hrms.infrastructure.audit.repository;
+package com.company.hrms.audit.repository;
+
+import com.company.hrms.audit.model.AuditLog;
 
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import com.company.hrms.infrastructure.audit.entity.AuditLog;
 
 @Repository
 public interface AuditLogRepo extends JpaRepository<AuditLog, Long> {

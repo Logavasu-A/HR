@@ -1,4 +1,4 @@
-package com.company.hrms.modules.leave.entity;
+package com.company.hrms.leave.model;
 
 import java.time.LocalDate;
 

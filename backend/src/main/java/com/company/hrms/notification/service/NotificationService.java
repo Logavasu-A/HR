@@ -1,4 +1,7 @@
-package com.company.hrms.modules.notification.service;
+package com.company.hrms.notification.service;
+
+import com.company.hrms.notification.model.Notification;
+import com.company.hrms.notification.repository.NotificationRepo;
 
 import java.time.LocalDateTime;
 
@@ -10,12 +13,10 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
-import com.company.hrms.modules.admin.entity.AppUser;
-import com.company.hrms.modules.admin.repository.UserRepo;
-import com.company.hrms.modules.admin.repository.RoleRepo;
-import com.company.hrms.modules.employee.entity.Employee;
-import com.company.hrms.modules.notification.entity.Notification;
-import com.company.hrms.modules.notification.repository.NotificationRepo;
+import com.company.hrms.admin.model.AppUser;
+import com.company.hrms.admin.repository.UserRepo;
+import com.company.hrms.admin.repository.RoleRepo;
+import com.company.hrms.employee.model.Employee;
 
 /** In-app notifications, plus an email copy when app.mail.enabled is true. */
 @Service

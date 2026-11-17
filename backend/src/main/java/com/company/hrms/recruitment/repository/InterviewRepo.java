@@ -1,9 +1,10 @@
-package com.company.hrms.modules.recruitment.repository;
+package com.company.hrms.recruitment.repository;
+
+import com.company.hrms.recruitment.model.Interview;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import com.company.hrms.modules.recruitment.entity.Interview;
 
 @Repository
 public interface InterviewRepo extends JpaRepository<Interview, Long> {

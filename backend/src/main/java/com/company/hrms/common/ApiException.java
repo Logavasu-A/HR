@@ -1,4 +1,4 @@
-package com.company.hrms.common.exception;
+package com.company.hrms.common;
 
 import org.springframework.http.HttpStatus;
 

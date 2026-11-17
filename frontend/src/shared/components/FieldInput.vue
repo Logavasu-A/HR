@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue'
-import { refLabel } from '@/utils'
+import { refLabel } from '@/shared/utils'
 
 const props = defineProps({
   field: { type: Object, required: true },

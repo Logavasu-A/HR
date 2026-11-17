@@ -1,4 +1,11 @@
-package com.company.hrms.modules.performance.controller;
+package com.company.hrms.performance.controller;
+
+import com.company.hrms.performance.model.Appraisal;
+import com.company.hrms.performance.model.AppraisalCycle;
+import com.company.hrms.performance.model.Goal;
+import com.company.hrms.performance.repository.AppraisalCycleRepo;
+import com.company.hrms.performance.repository.AppraisalRepo;
+import com.company.hrms.performance.repository.GoalRepo;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -9,15 +16,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.company.hrms.common.base.CrudController;
-import com.company.hrms.common.exception.ApiException;
-import com.company.hrms.modules.notification.service.NotificationService;
-import com.company.hrms.modules.performance.entity.Appraisal;
-import com.company.hrms.modules.performance.entity.AppraisalCycle;
-import com.company.hrms.modules.performance.entity.Goal;
-import com.company.hrms.modules.performance.repository.AppraisalCycleRepo;
-import com.company.hrms.modules.performance.repository.GoalRepo;
-import com.company.hrms.modules.performance.repository.AppraisalRepo;
+import com.company.hrms.common.CrudController;
+import com.company.hrms.common.ApiException;
+import com.company.hrms.notification.service.NotificationService;
 
 public class PerformanceControllers {
 

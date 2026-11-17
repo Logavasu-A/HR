@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import Layout from '@/components/layout/Layout.vue'
+import Layout from '@/shared/components/Layout.vue'
 
 const route = useRoute()
 const bare = computed(() => route.meta.bare === true)

@@ -1,8 +1,8 @@
 <script setup>
 import { onMounted, ref } from 'vue'
-import api from '@/services/api'
-import { errorMessage, money, periodLabel } from '@/utils'
-import SlipModal from '@/modules/payroll/components/SlipModal.vue'
+import { listPayslips } from '../services/selfService'
+import { errorMessage, money, periodLabel } from '@/shared/utils'
+import SlipModal from '@/shared/components/SlipModal.vue'
 
 const slips = ref([])
 const openSlip = ref(null)
@@ -11,8 +11,7 @@ const loading = ref(true)
 
 onMounted(async () => {
   try {
-    const { data } = await api.get('/me/payslips')
-    slips.value = data
+    slips.value = await listPayslips()
   } catch (e) {
     error.value = errorMessage(e)
   } finally {

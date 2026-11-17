@@ -1,11 +1,12 @@
-package com.company.hrms.modules.admin.repository;
+package com.company.hrms.admin.repository;
+
+import com.company.hrms.admin.model.AppUser;
 
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import com.company.hrms.modules.admin.entity.AppUser;
 
 @Repository
 public interface UserRepo extends JpaRepository<AppUser, Long> {

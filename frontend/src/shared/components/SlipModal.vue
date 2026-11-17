@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue'
-import { money, periodLabel } from '@/utils'
+import { money, periodLabel } from '@/shared/utils'
 
 const props = defineProps({ slip: { type: Object, required: true } })
 defineEmits(['close'])

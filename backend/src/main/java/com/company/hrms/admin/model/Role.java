@@ -1,9 +1,9 @@
-package com.company.hrms.modules.admin.entity;
+package com.company.hrms.admin.model;
 
 import java.util.HashSet;
 import java.util.Set;
 
-import com.company.hrms.common.base.BaseEntity;
+import com.company.hrms.common.BaseEntity;
 
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;

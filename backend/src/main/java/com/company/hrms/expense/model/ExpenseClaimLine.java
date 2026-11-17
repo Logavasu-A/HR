@@ -1,4 +1,4 @@
-package com.company.hrms.modules.expense.entity;
+package com.company.hrms.expense.model;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;

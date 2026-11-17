@@ -1,0 +1,13 @@
+# build output
+backend/target/
+frontend/dist/
+
+# dependencies
+frontend/node_modules/
+
+# local secrets
+backend/application-local.properties
+
+# misc
+*.log
+.claude/

@@ -1,4 +1,4 @@
-package com.company.hrms.common.exception;
+package com.company.hrms.common;
 
 import java.util.Map;
 import java.util.stream.Collectors;

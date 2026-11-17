@@ -1,4 +1,7 @@
-package com.company.hrms.modules.auth.controller;
+package com.company.hrms.auth.controller;
+
+import com.company.hrms.auth.model.ChangePasswordRequest;
+import com.company.hrms.auth.model.LoginRequest;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -11,16 +14,14 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.company.hrms.common.exception.ApiException;
-import com.company.hrms.infrastructure.audit.entity.AuditLog;
-import com.company.hrms.infrastructure.audit.repository.AuditLogRepo;
-import com.company.hrms.modules.admin.entity.AppUser;
-import com.company.hrms.modules.admin.repository.UserRepo;
-import com.company.hrms.modules.admin.repository.RoleRepo;
-import com.company.hrms.modules.auth.dto.request.ChangePasswordRequest;
-import com.company.hrms.modules.auth.dto.request.LoginRequest;
-import com.company.hrms.security.jwt.JwtService;
-import com.company.hrms.security.principal.CurrentUser;
+import com.company.hrms.common.ApiException;
+import com.company.hrms.audit.model.AuditLog;
+import com.company.hrms.audit.repository.AuditLogRepo;
+import com.company.hrms.admin.model.AppUser;
+import com.company.hrms.admin.repository.UserRepo;
+import com.company.hrms.admin.repository.RoleRepo;
+import com.company.hrms.security.JwtService;
+import com.company.hrms.security.CurrentUser;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;

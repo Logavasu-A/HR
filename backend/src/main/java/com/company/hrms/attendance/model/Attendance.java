@@ -1,11 +1,11 @@
-package com.company.hrms.modules.attendance.entity;
+package com.company.hrms.attendance.model;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
-import com.company.hrms.common.base.BaseEntity;
-import com.company.hrms.modules.employee.entity.Employee;
+import com.company.hrms.common.BaseEntity;
+import com.company.hrms.employee.model.Employee;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

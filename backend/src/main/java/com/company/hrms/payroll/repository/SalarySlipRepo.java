@@ -1,12 +1,13 @@
-package com.company.hrms.modules.payroll.repository;
+package com.company.hrms.payroll.repository;
+
+import com.company.hrms.payroll.model.PayrollRun;
+import com.company.hrms.payroll.model.SalarySlip;
 
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import com.company.hrms.modules.payroll.entity.PayrollRun;
-import com.company.hrms.modules.payroll.entity.SalarySlip;
 
 @Repository
 public interface SalarySlipRepo extends JpaRepository<SalarySlip, Long> {

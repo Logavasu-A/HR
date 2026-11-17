@@ -1,4 +1,11 @@
-package com.company.hrms.modules.recruitment.controller;
+package com.company.hrms.recruitment.controller;
+
+import com.company.hrms.recruitment.model.Interview;
+import com.company.hrms.recruitment.model.JobApplicant;
+import com.company.hrms.recruitment.model.JobOpening;
+import com.company.hrms.recruitment.repository.InterviewRepo;
+import com.company.hrms.recruitment.repository.JobApplicantRepo;
+import com.company.hrms.recruitment.repository.JobOpeningRepo;
 
 import java.time.LocalDate;
 
@@ -8,17 +15,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.company.hrms.common.base.CrudController;
-import com.company.hrms.common.exception.ApiException;
-import com.company.hrms.modules.employee.entity.Employee;
-import com.company.hrms.modules.employee.service.EmployeeService;
-import com.company.hrms.modules.notification.service.NotificationService;
-import com.company.hrms.modules.recruitment.entity.Interview;
-import com.company.hrms.modules.recruitment.entity.JobApplicant;
-import com.company.hrms.modules.recruitment.entity.JobOpening;
-import com.company.hrms.modules.recruitment.repository.JobOpeningRepo;
-import com.company.hrms.modules.recruitment.repository.JobApplicantRepo;
-import com.company.hrms.modules.recruitment.repository.InterviewRepo;
+import com.company.hrms.common.CrudController;
+import com.company.hrms.common.ApiException;
+import com.company.hrms.employee.model.Employee;
+import com.company.hrms.employee.service.EmployeeService;
+import com.company.hrms.notification.service.NotificationService;
 
 public class RecruitmentControllers {
 

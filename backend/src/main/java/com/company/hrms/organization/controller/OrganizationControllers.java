@@ -1,15 +1,16 @@
-package com.company.hrms.modules.organization.controller;
+package com.company.hrms.organization.controller;
+
+import com.company.hrms.organization.model.Branch;
+import com.company.hrms.organization.model.Department;
+import com.company.hrms.organization.model.Designation;
+import com.company.hrms.organization.repository.BranchRepo;
+import com.company.hrms.organization.repository.DepartmentRepo;
+import com.company.hrms.organization.repository.DesignationRepo;
 
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.company.hrms.common.base.CrudController;
-import com.company.hrms.modules.organization.entity.Branch;
-import com.company.hrms.modules.organization.entity.Department;
-import com.company.hrms.modules.organization.entity.Designation;
-import com.company.hrms.modules.organization.repository.BranchRepo;
-import com.company.hrms.modules.organization.repository.DepartmentRepo;
-import com.company.hrms.modules.organization.repository.DesignationRepo;
+import com.company.hrms.common.CrudController;
 
 public class OrganizationControllers {
 

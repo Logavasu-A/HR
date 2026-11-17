@@ -1,9 +1,10 @@
-package com.company.hrms.modules.expense.repository;
+package com.company.hrms.expense.repository;
+
+import com.company.hrms.expense.model.EmployeeAdvance;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import com.company.hrms.modules.expense.entity.EmployeeAdvance;
 
 @Repository
 public interface EmployeeAdvanceRepo extends JpaRepository<EmployeeAdvance, Long> {

@@ -1,4 +1,4 @@
-package com.company.hrms.security.authorization;
+package com.company.hrms.security;
 
 import java.util.List;
 
@@ -17,11 +17,8 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import com.company.hrms.modules.admin.repository.UserRepo;
-import com.company.hrms.modules.admin.repository.RoleRepo;
-import com.company.hrms.security.jwt.JwtFilter;
-import com.company.hrms.security.jwt.JwtService;
-import com.company.hrms.security.permission.PermissionManager;
+import com.company.hrms.admin.repository.UserRepo;
+import com.company.hrms.admin.repository.RoleRepo;
 
 @Configuration
 public class SecurityConfig {

@@ -1,13 +1,14 @@
-package com.company.hrms.infrastructure.audit.interceptor;
+package com.company.hrms.audit.interceptor;
+
+import com.company.hrms.audit.model.AuditLog;
+import com.company.hrms.audit.repository.AuditLogRepo;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
-import com.company.hrms.infrastructure.audit.entity.AuditLog;
-import com.company.hrms.infrastructure.audit.repository.AuditLogRepo;
-import com.company.hrms.security.principal.CurrentUser;
+import com.company.hrms.security.CurrentUser;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

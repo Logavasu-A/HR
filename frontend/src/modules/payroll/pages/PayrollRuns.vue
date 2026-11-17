@@ -1,9 +1,9 @@
 <script setup>
 import { onMounted, ref } from 'vue'
-import api from '@/services/api'
-import { can } from '@/stores/auth'
-import { errorMessage, money, MONTHS, periodLabel, pretty } from '@/utils'
-import SlipModal from '../components/SlipModal.vue'
+import * as payroll from '../services/payrollService'
+import { can } from '@/shared/auth'
+import { errorMessage, money, MONTHS, periodLabel, pretty } from '@/shared/utils'
+import SlipModal from '@/shared/components/SlipModal.vue'
 
 const now = new Date()
 const year = ref(now.getFullYear())
@@ -18,14 +18,12 @@ const error = ref('')
 const busy = ref(false)
 
 async function loadRuns() {
-  const { data } = await api.get('/payroll/runs')
-  runs.value = data
+  runs.value = await payroll.listRuns()
 }
 
 async function showSlips(run) {
   selected.value = run
-  const { data } = await api.get(`/payroll/runs/${run.id}/slips`)
-  slips.value = data
+  slips.value = await payroll.listSlips(run.id)
 }
 
 async function guarded(fn) {
@@ -41,7 +39,7 @@ async function guarded(fn) {
 }
 
 const calculate = () => guarded(async () => {
-  const { data } = await api.post('/payroll/runs', { year: Number(year.value), month: Number(month.value) })
+  const data = await payroll.createRun(Number(year.value), Number(month.value))
   skipped.value = data.skipped || []
   await loadRuns()
   await showSlips(data)
@@ -49,14 +47,14 @@ const calculate = () => guarded(async () => {
 
 const submit = (run) => guarded(async () => {
   if (!window.confirm(`Submit payroll for ${periodLabel(run.periodYear, run.periodMonth)}? Slips become final and employees are notified.`)) return
-  await api.post(`/payroll/runs/${run.id}/submit`)
+  await payroll.submitRun(run.id)
   await loadRuns()
   if (selected.value?.id === run.id) await showSlips(runs.value.find((r) => r.id === run.id))
 })
 
 const remove = (run) => guarded(async () => {
   if (!window.confirm('Delete this draft payroll run and its slips?')) return
-  await api.delete(`/payroll/runs/${run.id}`)
+  await payroll.deleteRun(run.id)
   if (selected.value?.id === run.id) {
     selected.value = null
     slips.value = []

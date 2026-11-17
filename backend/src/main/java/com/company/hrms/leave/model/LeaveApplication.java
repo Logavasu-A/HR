@@ -1,12 +1,12 @@
-package com.company.hrms.modules.leave.entity;
+package com.company.hrms.leave.model;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-import com.company.hrms.common.base.BaseEntity;
-import com.company.hrms.common.enums.ApprovalStatus;
-import com.company.hrms.modules.employee.entity.Employee;
+import com.company.hrms.common.BaseEntity;
+import com.company.hrms.common.ApprovalStatus;
+import com.company.hrms.employee.model.Employee;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

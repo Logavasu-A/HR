@@ -1,9 +1,10 @@
-package com.company.hrms.modules.organization.repository;
+package com.company.hrms.organization.repository;
+
+import com.company.hrms.organization.model.Branch;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import com.company.hrms.modules.organization.entity.Branch;
 
 @Repository
 public interface BranchRepo extends JpaRepository<Branch, Long> {

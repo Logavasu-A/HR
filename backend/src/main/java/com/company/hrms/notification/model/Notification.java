@@ -1,9 +1,9 @@
-package com.company.hrms.modules.notification.entity;
+package com.company.hrms.notification.model;
 
 import java.time.LocalDateTime;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.company.hrms.modules.admin.entity.AppUser;
+import com.company.hrms.admin.model.AppUser;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

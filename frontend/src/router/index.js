@@ -1,15 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import api from '@/services/api'
-import { auth, can, isEmployee, setUser } from '@/stores/auth'
-import { resources, selfResources } from '@/constants/resources'
-import CrudPage from '@/components/common/CrudPage.vue'
-
-import authRoutes from '@/modules/auth/routes'
-import dashboardRoutes from '@/modules/dashboard/routes'
-import attendanceRoutes from '@/modules/attendance/routes'
-import payrollRoutes from '@/modules/payroll/routes'
-import notificationsRoutes from '@/modules/notifications/routes'
-import selfserviceRoutes from '@/modules/selfservice/routes'
+import api from '@/shared/api'
+import { auth, can, isEmployee, setUser } from '@/shared/auth'
+import { resources, selfResources, featureRoutes } from '@/modules'
+import CrudPage from '@/shared/components/CrudPage.vue'
 
 function homePath() {
   if (can('dashboard:read')) return '/dashboard'
@@ -18,13 +11,8 @@ function homePath() {
 }
 
 const routes = [
-  ...authRoutes,
   { path: '/', redirect: () => homePath() },
-  ...dashboardRoutes,
-  ...payrollRoutes,
-  ...attendanceRoutes,
-  ...selfserviceRoutes,
-  ...notificationsRoutes,
+  ...featureRoutes,
   ...resources.map((r) => ({ path: r.path, component: CrudPage, props: { config: r }, meta: { perm: `${r.perm}:read` } })),
   ...selfResources.map((r) => ({ path: r.path, component: CrudPage, props: { config: r }, meta: { self: true } })),
   { path: '/:pathMatch(.*)*', redirect: '/' },

@@ -1,4 +1,16 @@
-package com.company.hrms.modules.payroll.service;
+package com.company.hrms.payroll.service;
+
+import com.company.hrms.payroll.model.PayrollRun;
+import com.company.hrms.payroll.model.SalaryAssignment;
+import com.company.hrms.payroll.model.SalaryComponent;
+import com.company.hrms.payroll.model.SalarySlip;
+import com.company.hrms.payroll.model.SalarySlipLine;
+import com.company.hrms.payroll.model.SalaryStructure;
+import com.company.hrms.payroll.model.SalaryStructureLine;
+import com.company.hrms.payroll.repository.PayrollRunRepo;
+import com.company.hrms.payroll.repository.SalaryAssignmentRepo;
+import com.company.hrms.payroll.repository.SalarySlipRepo;
+import com.company.hrms.payroll.repository.SalaryStructureRepo;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -13,32 +25,20 @@ import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.company.hrms.common.enums.ApprovalStatus;
-import com.company.hrms.common.exception.ApiException;
-import com.company.hrms.modules.attendance.entity.Attendance;
-import com.company.hrms.modules.attendance.repository.ShiftTypeRepo;
-import com.company.hrms.modules.attendance.repository.AttendanceRepo;
-import com.company.hrms.modules.employee.entity.Employee;
-import com.company.hrms.modules.employee.repository.EmployeeRepo;
-import com.company.hrms.modules.leave.entity.LeaveApplication;
-import com.company.hrms.modules.leave.repository.HolidayListRepo;
-import com.company.hrms.modules.leave.repository.LeaveTypeRepo;
-import com.company.hrms.modules.leave.repository.LeaveAllocationRepo;
-import com.company.hrms.modules.leave.repository.LeaveApplicationRepo;
-import com.company.hrms.modules.leave.service.LeaveService;
-import com.company.hrms.modules.notification.service.NotificationService;
-import com.company.hrms.modules.payroll.entity.PayrollRun;
-import com.company.hrms.modules.payroll.entity.SalaryAssignment;
-import com.company.hrms.modules.payroll.entity.SalaryComponent;
-import com.company.hrms.modules.payroll.entity.SalarySlip;
-import com.company.hrms.modules.payroll.entity.SalarySlipLine;
-import com.company.hrms.modules.payroll.entity.SalaryStructure;
-import com.company.hrms.modules.payroll.entity.SalaryStructureLine;
-import com.company.hrms.modules.payroll.repository.SalaryComponentRepo;
-import com.company.hrms.modules.payroll.repository.SalaryStructureRepo;
-import com.company.hrms.modules.payroll.repository.SalaryAssignmentRepo;
-import com.company.hrms.modules.payroll.repository.PayrollRunRepo;
-import com.company.hrms.modules.payroll.repository.SalarySlipRepo;
+import com.company.hrms.common.ApprovalStatus;
+import com.company.hrms.common.ApiException;
+import com.company.hrms.attendance.model.Attendance;
+import com.company.hrms.attendance.repository.ShiftTypeRepo;
+import com.company.hrms.attendance.repository.AttendanceRepo;
+import com.company.hrms.employee.model.Employee;
+import com.company.hrms.employee.repository.EmployeeRepo;
+import com.company.hrms.leave.model.LeaveApplication;
+import com.company.hrms.leave.repository.HolidayListRepo;
+import com.company.hrms.leave.repository.LeaveTypeRepo;
+import com.company.hrms.leave.repository.LeaveAllocationRepo;
+import com.company.hrms.leave.repository.LeaveApplicationRepo;
+import com.company.hrms.leave.service.LeaveService;
+import com.company.hrms.notification.service.NotificationService;
 
 import lombok.RequiredArgsConstructor;
 

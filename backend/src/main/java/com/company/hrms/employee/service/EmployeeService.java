@@ -1,11 +1,12 @@
-package com.company.hrms.modules.employee.service;
+package com.company.hrms.employee.service;
+
+import com.company.hrms.employee.model.Employee;
+import com.company.hrms.employee.repository.EmployeeRepo;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.company.hrms.common.exception.ApiException;
-import com.company.hrms.modules.employee.entity.Employee;
-import com.company.hrms.modules.employee.repository.EmployeeRepo;
+import com.company.hrms.common.ApiException;
 
 import lombok.RequiredArgsConstructor;
 

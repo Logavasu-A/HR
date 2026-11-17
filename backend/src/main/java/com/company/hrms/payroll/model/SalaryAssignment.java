@@ -1,11 +1,11 @@
-package com.company.hrms.modules.payroll.entity;
+package com.company.hrms.payroll.model;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.company.hrms.common.base.BaseEntity;
-import com.company.hrms.modules.employee.entity.Employee;
+import com.company.hrms.common.BaseEntity;
+import com.company.hrms.employee.model.Employee;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;

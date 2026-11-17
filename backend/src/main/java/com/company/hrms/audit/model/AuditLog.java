@@ -1,4 +1,4 @@
-package com.company.hrms.infrastructure.audit.entity;
+package com.company.hrms.audit.model;
 
 import java.time.LocalDateTime;
 

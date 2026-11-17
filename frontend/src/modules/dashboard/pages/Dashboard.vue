@@ -1,8 +1,8 @@
 <script setup>
-import { nextTick, onMounted, onUnmounted, ref } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import Chart from 'chart.js/auto'
-import api from '@/services/api'
-import { errorMessage, money } from '@/utils'
+import { getSummary } from '../services/dashboardService'
+import { errorMessage, money } from '@/shared/utils'
 
 const data = ref(null)
 const error = ref('')
@@ -15,7 +15,28 @@ const leaveTrend = ref(null)
 const attendance = ref(null)
 const payroll = ref(null)
 
-const COLORS = ['#2563eb', '#16a34a', '#f59e0b', '#dc2626', '#7c3aed', '#0891b2', '#64748b', '#db2777']
+const COLORS = ['#4f46e5', '#16a34a', '#f59e0b', '#dc2626', '#7c3aed', '#0891b2', '#64748b', '#db2777']
+
+Chart.defaults.font.family = "'Inter', system-ui, sans-serif"
+Chart.defaults.color = '#6b7390'
+Chart.defaults.borderColor = '#eceef6'
+Chart.defaults.plugins.legend.labels.usePointStyle = true
+Chart.defaults.elements.bar.borderRadius = 6
+Chart.defaults.elements.line.borderWidth = 2.5
+Chart.defaults.elements.point.radius = 3
+
+const tiles = computed(() => {
+  const c = data.value?.cards
+  if (!c) return []
+  return [
+    { label: 'Active employees', value: c.headcount, color: '#4f46e5', icon: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>' },
+    { label: 'Attrition, last 12 months', value: `${c.attritionRate}%`, color: '#dc2626', icon: '<polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/>' },
+    { label: 'Leave requests waiting', value: c.pendingLeaves, color: '#f59e0b', icon: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>' },
+    { label: 'Expense claims waiting', value: c.pendingExpenses, color: '#0891b2', icon: '<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>' },
+    { label: 'Open positions', value: c.openPositions, color: '#16a34a', icon: '<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>' },
+    { label: 'Applicants in pipeline', value: c.applicantsInPipeline, color: '#7c3aed', icon: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 11l-3 3-2-2"/>' },
+  ]
+})
 
 function make(canvas, config) {
   if (canvas.value) charts.push(new Chart(canvas.value, config))
@@ -66,10 +87,10 @@ function draw(d) {
 
 onMounted(async () => {
   try {
-    const res = await api.get('/dashboard/summary')
-    data.value = res.data
+    const summary = await getSummary()
+    data.value = summary
     await nextTick()
-    draw(res.data)
+    draw(summary)
   } catch (e) {
     error.value = errorMessage(e)
   }
@@ -86,12 +107,15 @@ onUnmounted(() => charts.forEach((c) => c.destroy()))
 
     <template v-if="data">
       <div class="stats">
-        <div class="card stat"><div class="stat-label">Active employees</div><div class="stat-value">{{ data.cards.headcount }}</div></div>
-        <div class="card stat"><div class="stat-label">Attrition, last 12 months</div><div class="stat-value">{{ data.cards.attritionRate }}%</div></div>
-        <div class="card stat"><div class="stat-label">Leave requests waiting</div><div class="stat-value">{{ data.cards.pendingLeaves }}</div></div>
-        <div class="card stat"><div class="stat-label">Expense claims waiting</div><div class="stat-value">{{ data.cards.pendingExpenses }}</div></div>
-        <div class="card stat"><div class="stat-label">Open positions</div><div class="stat-value">{{ data.cards.openPositions }}</div></div>
-        <div class="card stat"><div class="stat-label">Applicants in pipeline</div><div class="stat-value">{{ data.cards.applicantsInPipeline }}</div></div>
+        <div v-for="s in tiles" :key="s.label" class="card stat" :style="{ '--accent': s.color }">
+          <div class="stat-top">
+            <span class="stat-label">{{ s.label }}</span>
+            <span class="stat-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="s.icon"></svg>
+            </span>
+          </div>
+          <div class="stat-value">{{ s.value }}</div>
+        </div>
       </div>
 
       <div class="charts">

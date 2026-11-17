@@ -1,4 +1,4 @@
-package com.company.hrms.modules.auth.dto.request;
+package com.company.hrms.auth.model;
 
 public record LoginRequest(String username, String password) {
 }

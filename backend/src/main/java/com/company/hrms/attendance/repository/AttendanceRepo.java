@@ -1,4 +1,6 @@
-package com.company.hrms.modules.attendance.repository;
+package com.company.hrms.attendance.repository;
+
+import com.company.hrms.attendance.model.Attendance;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -7,7 +9,6 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import com.company.hrms.modules.attendance.entity.Attendance;
 
 @Repository
 public interface AttendanceRepo extends JpaRepository<Attendance, Long> {
