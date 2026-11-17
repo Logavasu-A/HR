@@ -1,4 +1,4 @@
-package com.company.hrms.security;
+package shared.security;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;

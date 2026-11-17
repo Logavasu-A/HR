@@ -1,11 +1,11 @@
-package com.company.hrms.recruitment.controller;
+package modules.recruitment.controller;
 
-import com.company.hrms.recruitment.model.Interview;
-import com.company.hrms.recruitment.model.JobApplicant;
-import com.company.hrms.recruitment.model.JobOpening;
-import com.company.hrms.recruitment.repository.InterviewRepo;
-import com.company.hrms.recruitment.repository.JobApplicantRepo;
-import com.company.hrms.recruitment.repository.JobOpeningRepo;
+import modules.recruitment.model.Interview;
+import modules.recruitment.model.JobApplicant;
+import modules.recruitment.model.JobOpening;
+import modules.recruitment.repository.InterviewRepo;
+import modules.recruitment.repository.JobApplicantRepo;
+import modules.recruitment.repository.JobOpeningRepo;
 
 import java.time.LocalDate;
 
@@ -15,11 +15,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.company.hrms.common.CrudController;
-import com.company.hrms.common.ApiException;
-import com.company.hrms.employee.model.Employee;
-import com.company.hrms.employee.service.EmployeeService;
-import com.company.hrms.notification.service.NotificationService;
+import shared.common.CrudController;
+import shared.common.ApiException;
+import modules.employee.model.Employee;
+import modules.employee.service.EmployeeService;
+import modules.notification.service.NotificationService;
 
 public class RecruitmentControllers {
 

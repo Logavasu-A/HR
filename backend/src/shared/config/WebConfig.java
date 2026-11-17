@@ -1,10 +1,10 @@
-package com.company.hrms.config;
+package shared.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-import com.company.hrms.audit.interceptor.AuditInterceptor;
+import modules.audit.interceptor.AuditInterceptor;
 
 import lombok.RequiredArgsConstructor;
 

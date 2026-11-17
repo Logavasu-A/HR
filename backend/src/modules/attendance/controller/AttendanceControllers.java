@@ -1,10 +1,10 @@
-package com.company.hrms.attendance.controller;
+package modules.attendance.controller;
 
-import com.company.hrms.attendance.model.Attendance;
-import com.company.hrms.attendance.model.ShiftType;
-import com.company.hrms.attendance.repository.AttendanceRepo;
-import com.company.hrms.attendance.repository.ShiftTypeRepo;
-import com.company.hrms.attendance.service.AttendanceService;
+import modules.attendance.model.Attendance;
+import modules.attendance.model.ShiftType;
+import modules.attendance.repository.AttendanceRepo;
+import modules.attendance.repository.ShiftTypeRepo;
+import modules.attendance.service.AttendanceService;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.company.hrms.common.CrudController;
+import shared.common.CrudController;
 
 public class AttendanceControllers {
 

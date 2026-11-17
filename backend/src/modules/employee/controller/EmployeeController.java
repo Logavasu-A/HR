@@ -1,14 +1,14 @@
-package com.company.hrms.employee.controller;
+package modules.employee.controller;
 
-import com.company.hrms.employee.model.Employee;
-import com.company.hrms.employee.repository.EmployeeRepo;
-import com.company.hrms.employee.service.EmployeeService;
+import modules.employee.model.Employee;
+import modules.employee.repository.EmployeeRepo;
+import modules.employee.service.EmployeeService;
 
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.company.hrms.common.CrudController;
-import com.company.hrms.common.ApiException;
+import shared.common.CrudController;
+import shared.common.ApiException;
 
 @RestController
 @RequestMapping("/api/core/employees")

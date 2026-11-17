@@ -1,12 +1,11 @@
-package com.company.hrms.employee.repository;
+package modules.employee.repository;
 
-import com.company.hrms.employee.model.Employee;
+import modules.employee.model.Employee;
 
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
-
 
 @Repository
 public interface EmployeeRepo extends JpaRepository<Employee, Long> {

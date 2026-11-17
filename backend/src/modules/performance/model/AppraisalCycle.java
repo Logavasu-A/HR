@@ -1,8 +1,8 @@
-package com.company.hrms.performance.model;
+package modules.performance.model;
 
 import java.time.LocalDate;
 
-import com.company.hrms.common.BaseEntity;
+import shared.common.BaseEntity;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

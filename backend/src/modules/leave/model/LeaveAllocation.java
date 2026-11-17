@@ -1,10 +1,10 @@
-package com.company.hrms.leave.model;
+package modules.leave.model;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
-import com.company.hrms.common.BaseEntity;
-import com.company.hrms.employee.model.Employee;
+import shared.common.BaseEntity;
+import modules.employee.model.Employee;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;

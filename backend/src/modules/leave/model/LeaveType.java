@@ -1,8 +1,8 @@
-package com.company.hrms.leave.model;
+package modules.leave.model;
 
 import java.math.BigDecimal;
 
-import com.company.hrms.common.BaseEntity;
+import shared.common.BaseEntity;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;

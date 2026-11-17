@@ -20,8 +20,6 @@ app:
   jwt:
     secret: ${JWT_SECRET:}
     expiry-hours: 12
-  admin:
-    initial-password: ${ADMIN_INITIAL_PASSWORD:}
   mail:
     # Set to true and fill the spring.mail.* values in application-local.properties to send emails.
     enabled: false

@@ -1,10 +1,9 @@
-package com.company.hrms.payroll.repository;
+package modules.payroll.repository;
 
-import com.company.hrms.payroll.model.SalaryStructure;
+import modules.payroll.model.SalaryStructure;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
-
 
 @Repository
 public interface SalaryStructureRepo extends JpaRepository<SalaryStructure, Long> {

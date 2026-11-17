@@ -1,4 +1,4 @@
-package com.company.hrms.payroll.model;
+package modules.payroll.model;
 
 import java.math.BigDecimal;
 

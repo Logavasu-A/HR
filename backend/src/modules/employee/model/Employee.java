@@ -1,13 +1,13 @@
-package com.company.hrms.employee.model;
+package modules.employee.model;
 
 import java.time.LocalDate;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.company.hrms.common.BaseEntity;
-import com.company.hrms.leave.model.HolidayList;
-import com.company.hrms.organization.model.Branch;
-import com.company.hrms.organization.model.Department;
-import com.company.hrms.organization.model.Designation;
+import shared.common.BaseEntity;
+import modules.leave.model.HolidayList;
+import modules.organization.model.Branch;
+import modules.organization.model.Department;
+import modules.organization.model.Designation;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

@@ -1,4 +1,4 @@
-package com.company.hrms.security;
+package shared.security;
 
 import java.util.List;
 
@@ -17,8 +17,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import com.company.hrms.admin.repository.UserRepo;
-import com.company.hrms.admin.repository.RoleRepo;
+import modules.admin.repository.UserRepo;
 
 @Configuration
 public class SecurityConfig {

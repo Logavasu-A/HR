@@ -1,4 +1,4 @@
-package com.company.hrms.common;
+package shared.common;
 
 public enum ApprovalStatus {
     PENDING, APPROVED, REJECTED, CANCELLED, PAID

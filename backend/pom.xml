@@ -86,6 +86,14 @@
     </dependencies>
 
     <build>
+        <!-- Folder layout: src/app, src/modules, src/shared (Java), src/resources (config, SQL), test/ (tests). -->
+        <sourceDirectory>src</sourceDirectory>
+        <testSourceDirectory>test</testSourceDirectory>
+        <resources>
+            <resource>
+                <directory>src/resources</directory>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

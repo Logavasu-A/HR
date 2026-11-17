@@ -1,4 +1,4 @@
-package com.company.hrms.security;
+package shared.security;
 
 import java.io.IOException;
 import java.util.List;
@@ -9,9 +9,8 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import com.company.hrms.admin.model.AppUser;
-import com.company.hrms.admin.repository.UserRepo;
-import com.company.hrms.admin.repository.RoleRepo;
+import modules.admin.model.AppUser;
+import modules.admin.repository.UserRepo;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

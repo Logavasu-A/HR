@@ -1,12 +1,11 @@
-package com.company.hrms.leave.repository;
+package modules.leave.repository;
 
-import com.company.hrms.leave.model.HolidayList;
+import modules.leave.model.HolidayList;
 
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
-
 
 @Repository
 public interface HolidayListRepo extends JpaRepository<HolidayList, Long> {

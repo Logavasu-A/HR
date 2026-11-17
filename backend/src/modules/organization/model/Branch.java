@@ -1,6 +1,6 @@
-package com.company.hrms.organization.model;
+package modules.organization.model;
 
-import com.company.hrms.common.BaseEntity;
+import shared.common.BaseEntity;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;

@@ -1,8 +1,8 @@
-package com.company.hrms.expense.service;
+package modules.expense.service;
 
-import com.company.hrms.expense.model.ExpenseClaim;
-import com.company.hrms.expense.model.ExpenseClaimLine;
-import com.company.hrms.expense.repository.ExpenseClaimRepo;
+import modules.expense.model.ExpenseClaim;
+import modules.expense.model.ExpenseClaimLine;
+import modules.expense.repository.ExpenseClaimRepo;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -11,12 +11,12 @@ import java.time.LocalDateTime;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.company.hrms.common.ApprovalStatus;
-import com.company.hrms.common.ApiException;
-import com.company.hrms.employee.model.Employee;
-import com.company.hrms.employee.service.EmployeeService;
-import com.company.hrms.notification.service.NotificationService;
-import com.company.hrms.security.CurrentUser;
+import shared.common.ApprovalStatus;
+import shared.common.ApiException;
+import modules.employee.model.Employee;
+import modules.employee.service.EmployeeService;
+import modules.notification.service.NotificationService;
+import shared.security.CurrentUser;
 
 import lombok.RequiredArgsConstructor;
 

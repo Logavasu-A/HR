@@ -1,8 +1,8 @@
-package com.company.hrms.attendance.model;
+package modules.attendance.model;
 
 import java.time.LocalTime;
 
-import com.company.hrms.common.BaseEntity;
+import shared.common.BaseEntity;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;

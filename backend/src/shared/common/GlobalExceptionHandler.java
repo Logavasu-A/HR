@@ -1,4 +1,4 @@
-package com.company.hrms.common;
+package shared.common;
 
 import java.util.Map;
 import java.util.stream.Collectors;

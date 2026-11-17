@@ -1,9 +1,9 @@
-package com.company.hrms.payroll.model;
+package modules.payroll.model;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import com.company.hrms.common.BaseEntity;
+import shared.common.BaseEntity;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;

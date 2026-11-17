@@ -1,14 +1,14 @@
-package com.company.hrms.leave.service;
+package modules.leave.service;
 
-import com.company.hrms.leave.model.Holiday;
-import com.company.hrms.leave.model.HolidayList;
-import com.company.hrms.leave.model.LeaveAllocation;
-import com.company.hrms.leave.model.LeaveApplication;
-import com.company.hrms.leave.model.LeaveType;
-import com.company.hrms.leave.repository.HolidayListRepo;
-import com.company.hrms.leave.repository.LeaveAllocationRepo;
-import com.company.hrms.leave.repository.LeaveApplicationRepo;
-import com.company.hrms.leave.repository.LeaveTypeRepo;
+import modules.leave.model.Holiday;
+import modules.leave.model.HolidayList;
+import modules.leave.model.LeaveAllocation;
+import modules.leave.model.LeaveApplication;
+import modules.leave.model.LeaveType;
+import modules.leave.repository.HolidayListRepo;
+import modules.leave.repository.LeaveAllocationRepo;
+import modules.leave.repository.LeaveApplicationRepo;
+import modules.leave.repository.LeaveTypeRepo;
 
 import java.math.BigDecimal;
 import java.time.DayOfWeek;
@@ -23,15 +23,14 @@ import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.company.hrms.common.ApprovalStatus;
-import com.company.hrms.common.ApiException;
-import com.company.hrms.attendance.model.Attendance;
-import com.company.hrms.attendance.repository.ShiftTypeRepo;
-import com.company.hrms.attendance.repository.AttendanceRepo;
-import com.company.hrms.employee.model.Employee;
-import com.company.hrms.employee.service.EmployeeService;
-import com.company.hrms.notification.service.NotificationService;
-import com.company.hrms.security.CurrentUser;
+import shared.common.ApprovalStatus;
+import shared.common.ApiException;
+import modules.attendance.model.Attendance;
+import modules.attendance.repository.AttendanceRepo;
+import modules.employee.model.Employee;
+import modules.employee.service.EmployeeService;
+import modules.notification.service.NotificationService;
+import shared.security.CurrentUser;
 
 import lombok.RequiredArgsConstructor;
 

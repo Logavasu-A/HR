@@ -1,13 +1,12 @@
-package com.company.hrms.payroll.repository;
+package modules.payroll.repository;
 
-import com.company.hrms.payroll.model.PayrollRun;
+import modules.payroll.model.PayrollRun;
 
 import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
-
 
 @Repository
 public interface PayrollRunRepo extends JpaRepository<PayrollRun, Long> {

@@ -1,10 +1,10 @@
-package com.company.hrms.security;
+package shared.security;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import com.company.hrms.common.ApiException;
+import shared.common.ApiException;
 
 /** Access to the signed-in user from anywhere in the code. */
 public final class CurrentUser {

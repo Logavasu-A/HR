@@ -1,9 +1,9 @@
-package com.company.hrms.admin.model;
+package modules.admin.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.company.hrms.common.BaseEntity;
-import com.company.hrms.employee.model.Employee;
+import shared.common.BaseEntity;
+import modules.employee.model.Employee;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;

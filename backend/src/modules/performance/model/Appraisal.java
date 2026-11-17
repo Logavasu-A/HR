@@ -1,9 +1,9 @@
-package com.company.hrms.performance.model;
+package modules.performance.model;
 
 import java.math.BigDecimal;
 
-import com.company.hrms.common.BaseEntity;
-import com.company.hrms.employee.model.Employee;
+import shared.common.BaseEntity;
+import modules.employee.model.Employee;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

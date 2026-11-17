@@ -1,12 +1,12 @@
-package com.company.hrms.payroll.model;
+package modules.payroll.model;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.company.hrms.common.BaseEntity;
-import com.company.hrms.employee.model.Employee;
+import shared.common.BaseEntity;
+import modules.employee.model.Employee;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;

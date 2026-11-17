@@ -1,12 +1,11 @@
-package com.company.hrms.admin.repository;
+package modules.admin.repository;
 
-import com.company.hrms.admin.model.Role;
+import modules.admin.model.Role;
 
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
-
 
 @Repository
 public interface RoleRepo extends JpaRepository<Role, Long> {

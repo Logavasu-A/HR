@@ -43,12 +43,9 @@ npm run dev
 
 Then open http://localhost:5173.
 
-## First login
+## Login
 
-- Username: `admin`
-- Password: the value of `ADMIN_INITIAL_PASSWORD` in `backend/application-local.properties`
-
-Change it after signing in (click your name at the top right).
+All users and roles are stored in the database (tables `app_user` and `role`); the application does not create any data itself. Sign in with a user that already exists there, and change the password from the top right after signing in.
 
 ## Configuration
 
@@ -58,12 +55,11 @@ Change it after signing in (click your name at the top right).
 |---|---|
 | `DB_PASSWORD` | Password of the `postgres` database user |
 | `JWT_SECRET` | Signing key for login tokens, 32+ characters |
-| `ADMIN_INITIAL_PASSWORD` | Password of the first `admin` login; only used while the user table is empty |
 
 To send emails as well as in-app notifications, uncomment the `app.mail.*` and `spring.mail.*`
 lines in that file and fill in your SMTP account.
 
-The database address and port are in `backend/src/main/resources/application.yml`.
+The database address and port are in `backend/src/resources/application.yml`.
 
 ## Roles and permissions
 
@@ -73,24 +69,26 @@ Every API path is `/api/{module}/...` and needs the permission `{module}:{action
 - `write`: add, change and delete records
 - `approve`: approve, reject, pay, submit
 
-`{module}:*` grants all three and `*` grants everything. Four roles are created on first start
-(ADMIN, HR_MANAGER, MANAGER, EMPLOYEE); edit them or add more under Administration → Roles.
+`{module}:*` grants all three and `*` grants everything. Roles are stored in the database; edit them or add more under Administration → Roles.
 The self-service screens need no permission, only a user that is linked to an employee.
 
 ## Where things are
 
 ```
-backend/src/main/java/com/myself/hrms/
-  common/       shared base classes (BaseEntity, CrudController, errors)
-  security/     login tokens and the permission check
-  admin/        users, roles, audit log, notifications, starter data
-  core/ leave/ attendance/ payroll/ recruitment/ expense/ performance/
-  me/           self-service endpoints
-  dashboard/    analytics
-backend/src/main/resources/db/migration/   database schema (Flyway)
+backend/
+  pom.xml
+  src/
+    app/         HrmsApplication (start-up class)
+    modules/     one folder per feature (admin, attendance, audit, auth, dashboard, employee, expense,
+                 leave, notification, organization, payroll, performance, recruitment, selfservice),
+                 each with controller / model / repository / service
+    shared/      common (base classes, errors), security (tokens, permissions), config
+    resources/   application.yml and db/migration (database schema, Flyway)
+  test/          tests
 
 frontend/src/
-  resources.js  every list-and-form screen is declared here
-  components/   CrudPage (generic list + form), Layout, payslip view
-  pages/        login, dashboard, payroll runs and the other custom screens
+  modules/       one folder per feature, with pages / models / services / routes as needed
+                 (models = the list-and-form screen definitions)
+  shared/        CrudPage (generic list + form), Layout, payslip view, api, auth, utils
+  router/        routes, built from the modules
 ```

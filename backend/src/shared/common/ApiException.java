@@ -1,4 +1,4 @@
-package com.company.hrms.common;
+package shared.common;
 
 import org.springframework.http.HttpStatus;
 

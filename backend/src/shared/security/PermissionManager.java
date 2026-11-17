@@ -1,4 +1,4 @@
-package com.company.hrms.security;
+package shared.security;
 
 import java.util.Set;
 import java.util.function.Supplier;
@@ -8,7 +8,6 @@ import org.springframework.security.authorization.AuthorizationManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
 import org.springframework.stereotype.Component;
-
 
 /**
  * Role-based permission check for every API call.

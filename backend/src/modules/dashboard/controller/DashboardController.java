@@ -1,4 +1,4 @@
-package com.company.hrms.dashboard.controller;
+package modules.dashboard.controller;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -14,31 +14,20 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.company.hrms.common.ApprovalStatus;
-import com.company.hrms.attendance.model.Attendance;
-import com.company.hrms.attendance.repository.ShiftTypeRepo;
-import com.company.hrms.attendance.repository.AttendanceRepo;
-import com.company.hrms.employee.model.Employee;
-import com.company.hrms.employee.repository.EmployeeRepo;
-import com.company.hrms.expense.repository.ExpenseTypeRepo;
-import com.company.hrms.expense.repository.ExpenseClaimRepo;
-import com.company.hrms.expense.repository.EmployeeAdvanceRepo;
-import com.company.hrms.leave.model.LeaveApplication;
-import com.company.hrms.leave.repository.HolidayListRepo;
-import com.company.hrms.leave.repository.LeaveTypeRepo;
-import com.company.hrms.leave.repository.LeaveAllocationRepo;
-import com.company.hrms.leave.repository.LeaveApplicationRepo;
-import com.company.hrms.payroll.model.PayrollRun;
-import com.company.hrms.payroll.repository.SalaryComponentRepo;
-import com.company.hrms.payroll.repository.SalaryStructureRepo;
-import com.company.hrms.payroll.repository.SalaryAssignmentRepo;
-import com.company.hrms.payroll.repository.PayrollRunRepo;
-import com.company.hrms.payroll.repository.SalarySlipRepo;
-import com.company.hrms.recruitment.model.JobApplicant;
-import com.company.hrms.recruitment.model.JobOpening;
-import com.company.hrms.recruitment.repository.JobOpeningRepo;
-import com.company.hrms.recruitment.repository.JobApplicantRepo;
-import com.company.hrms.recruitment.repository.InterviewRepo;
+import shared.common.ApprovalStatus;
+import modules.attendance.model.Attendance;
+import modules.attendance.repository.AttendanceRepo;
+import modules.employee.model.Employee;
+import modules.employee.repository.EmployeeRepo;
+import modules.expense.repository.ExpenseClaimRepo;
+import modules.leave.model.LeaveApplication;
+import modules.leave.repository.LeaveApplicationRepo;
+import modules.payroll.model.PayrollRun;
+import modules.payroll.repository.PayrollRunRepo;
+import modules.recruitment.model.JobApplicant;
+import modules.recruitment.model.JobOpening;
+import modules.recruitment.repository.JobOpeningRepo;
+import modules.recruitment.repository.JobApplicantRepo;
 
 import lombok.RequiredArgsConstructor;
 

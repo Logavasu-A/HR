@@ -1,9 +1,9 @@
-package com.company.hrms.admin.controller;
+package modules.admin.controller;
 
-import com.company.hrms.admin.model.AppUser;
-import com.company.hrms.admin.model.Role;
-import com.company.hrms.admin.repository.RoleRepo;
-import com.company.hrms.admin.repository.UserRepo;
+import modules.admin.model.AppUser;
+import modules.admin.model.Role;
+import modules.admin.repository.RoleRepo;
+import modules.admin.repository.UserRepo;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,11 +13,11 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.company.hrms.common.CrudController;
-import com.company.hrms.common.ApiException;
-import com.company.hrms.audit.model.AuditLog;
-import com.company.hrms.audit.repository.AuditLogRepo;
-import com.company.hrms.security.CurrentUser;
+import shared.common.CrudController;
+import shared.common.ApiException;
+import modules.audit.model.AuditLog;
+import modules.audit.repository.AuditLogRepo;
+import shared.security.CurrentUser;
 
 public class AdminControllers {
 

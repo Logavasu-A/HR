@@ -1,12 +1,11 @@
-package com.company.hrms.payroll.repository;
+package modules.payroll.repository;
 
-import com.company.hrms.payroll.model.SalaryAssignment;
+import modules.payroll.model.SalaryAssignment;
 
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
-
 
 @Repository
 public interface SalaryAssignmentRepo extends JpaRepository<SalaryAssignment, Long> {

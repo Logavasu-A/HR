@@ -1,16 +1,16 @@
-package com.company.hrms.payroll.controller;
+package modules.payroll.controller;
 
-import com.company.hrms.payroll.model.PayrollRun;
-import com.company.hrms.payroll.model.SalaryAssignment;
-import com.company.hrms.payroll.model.SalaryComponent;
-import com.company.hrms.payroll.model.SalarySlip;
-import com.company.hrms.payroll.model.SalaryStructure;
-import com.company.hrms.payroll.repository.PayrollRunRepo;
-import com.company.hrms.payroll.repository.SalaryAssignmentRepo;
-import com.company.hrms.payroll.repository.SalaryComponentRepo;
-import com.company.hrms.payroll.repository.SalarySlipRepo;
-import com.company.hrms.payroll.repository.SalaryStructureRepo;
-import com.company.hrms.payroll.service.PayrollService;
+import modules.payroll.model.PayrollRun;
+import modules.payroll.model.SalaryAssignment;
+import modules.payroll.model.SalaryComponent;
+import modules.payroll.model.SalarySlip;
+import modules.payroll.model.SalaryStructure;
+import modules.payroll.repository.PayrollRunRepo;
+import modules.payroll.repository.SalaryAssignmentRepo;
+import modules.payroll.repository.SalaryComponentRepo;
+import modules.payroll.repository.SalarySlipRepo;
+import modules.payroll.repository.SalaryStructureRepo;
+import modules.payroll.service.PayrollService;
 
 import java.util.List;
 
@@ -22,8 +22,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.company.hrms.common.CrudController;
-import com.company.hrms.common.ApiException;
+import shared.common.CrudController;
+import shared.common.ApiException;
 
 public class PayrollControllers {
 

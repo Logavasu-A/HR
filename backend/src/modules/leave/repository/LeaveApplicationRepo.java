@@ -1,6 +1,6 @@
-package com.company.hrms.leave.repository;
+package modules.leave.repository;
 
-import com.company.hrms.leave.model.LeaveApplication;
+import modules.leave.model.LeaveApplication;
 
 import java.time.LocalDate;
 import java.util.Collection;
@@ -9,7 +9,7 @@ import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import com.company.hrms.common.ApprovalStatus;
+import shared.common.ApprovalStatus;
 
 @Repository
 public interface LeaveApplicationRepo extends JpaRepository<LeaveApplication, Long> {
