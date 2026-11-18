@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.springframework.data.domain.PageRequest;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -60,12 +61,10 @@ public class DashboardController {
         cards.put("headcount", active.size());
         cards.put("pendingLeaves", leaveApplications.countByStatus(ApprovalStatus.PENDING));
         cards.put("pendingExpenses", claims.countByStatus(ApprovalStatus.PENDING));
-        cards.put("openPositions", openings.findAll().stream()
-                .filter(o -> o.getStatus() == JobOpening.Status.OPEN)
+        cards.put("openPositions", openings.findByStatus(JobOpening.Status.OPEN).stream()
                 .mapToInt(o -> o.getVacancies() == null ? 1 : o.getVacancies()).sum());
-        cards.put("applicantsInPipeline", applicants.findAll().stream()
-                .filter(a -> a.getStatus() != JobApplicant.Status.HIRED && a.getStatus() != JobApplicant.Status.REJECTED)
-                .count());
+        cards.put("applicantsInPipeline", applicants.countByStatusNotIn(
+                List.of(JobApplicant.Status.HIRED, JobApplicant.Status.REJECTED)));
         out.put("cards", cards);
 
         // ---- headcount splits ----
@@ -105,10 +104,9 @@ public class DashboardController {
         // ---- approved leave days per month (counted in the month the leave starts) ----
         Map<YearMonth, BigDecimal> leaveDays = new TreeMap<>();
         months.forEach(m -> leaveDays.put(m, BigDecimal.ZERO));
-        for (LeaveApplication la : leaveApplications.findAll()) {
-            if (la.getStatus() != ApprovalStatus.APPROVED) {
-                continue;
-            }
+        LocalDate earliestMonth = months.get(0).atDay(1);
+        for (LeaveApplication la : leaveApplications.findByStatusAndFromDateGreaterThanEqual(
+                ApprovalStatus.APPROVED, earliestMonth)) {
             YearMonth ym = YearMonth.from(la.getFromDate());
             if (leaveDays.containsKey(ym)) {
                 leaveDays.merge(ym, la.getTotalDays(), BigDecimal::add);
@@ -132,10 +130,8 @@ public class DashboardController {
         out.put("attendanceToday", todayCounts);
 
         // ---- payroll cost per month ----
-        List<PayrollRun> runs = new ArrayList<>(payrollRuns.findAllByOrderByPeriodYearDescPeriodMonthDesc());
-        if (runs.size() > MONTHS) {
-            runs = runs.subList(0, MONTHS);
-        }
+        List<PayrollRun> runs = new ArrayList<>(
+                payrollRuns.findAllByOrderByPeriodYearDescPeriodMonthDesc(PageRequest.of(0, MONTHS)).getContent());
         java.util.Collections.reverse(runs);
         Map<String, Object> payroll = new LinkedHashMap<>();
         payroll.put("labels", runs.stream()

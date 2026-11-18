@@ -4,27 +4,84 @@ import * as payroll from '../services/payrollService'
 import { can } from '@/shared/auth'
 import { errorMessage, money, MONTHS, periodLabel, pretty } from '@/shared/utils'
 import SlipModal from '@/shared/components/SlipModal.vue'
+import DataTable from '@/shared/components/DataTable.vue'
+import PaginationBar from '@/shared/components/PaginationBar.vue'
+
+const runColumns = [
+  { key: 'periodYear', label: 'Period', nowrap: true },
+  { key: 'status', label: 'Status', badge: true },
+  { key: 'slipCount', label: 'Slips', align: 'right' },
+  { key: 'totalNet', label: 'Total net pay', money: true },
+]
+
+const slipColumns = [
+  { key: 'employee.employeeCode', label: 'Employee' },
+  { key: 'paymentDays', label: 'Paid days', align: 'right' },
+  { key: 'lwpDays', label: 'Unpaid days', align: 'right' },
+  { key: 'grossPay', label: 'Gross', money: true },
+  { key: 'totalDeduction', label: 'Deductions', money: true },
+  { key: 'netPay', label: 'Net pay', money: true },
+]
 
 const now = new Date()
 const year = ref(now.getFullYear())
 const month = ref(now.getMonth() + 1)
 
 const runs = ref([])
+const runsPage = ref(0)
+const runsSize = ref(20)
+const runsTotal = ref(0)
+const runsPages = ref(0)
+
 const selected = ref(null)
 const slips = ref([])
+const slipsPage = ref(0)
+const slipsSize = ref(20)
+const slipsTotal = ref(0)
+const slipsPages = ref(0)
+
 const openSlip = ref(null)
 const skipped = ref([])
 const error = ref('')
 const busy = ref(false)
 
 async function loadRuns() {
-  runs.value = await payroll.listRuns()
+  const data = await payroll.listRuns(runsPage.value, runsSize.value)
+  if (Array.isArray(data)) {
+    runs.value = data
+    runsTotal.value = data.length
+    runsPages.value = data.length ? 1 : 0
+  } else {
+    runs.value = data.content || []
+    runsTotal.value = data.totalElements ?? runs.value.length
+    runsPages.value = data.totalPages ?? (runs.value.length ? 1 : 0)
+  }
+}
+
+async function loadSlips(run) {
+  if (!run) return
+  const data = await payroll.listSlips(run.id, slipsPage.value, slipsSize.value)
+  if (Array.isArray(data)) {
+    slips.value = data
+    slipsTotal.value = data.length
+    slipsPages.value = data.length ? 1 : 0
+  } else {
+    slips.value = data.content || []
+    slipsTotal.value = data.totalElements ?? slips.value.length
+    slipsPages.value = data.totalPages ?? (slips.value.length ? 1 : 0)
+  }
 }
 
 async function showSlips(run) {
   selected.value = run
-  slips.value = await payroll.listSlips(run.id)
+  slipsPage.value = 0
+  await loadSlips(run)
 }
+
+const onRunsPage = (p) => guarded(async () => { runsPage.value = p; await loadRuns() })
+const onRunsSize = (s) => guarded(async () => { runsSize.value = s; runsPage.value = 0; await loadRuns() })
+const onSlipsPage = (p) => guarded(async () => { slipsPage.value = p; await loadSlips(selected.value) })
+const onSlipsSize = (s) => guarded(async () => { slipsSize.value = s; slipsPage.value = 0; await loadSlips(selected.value) })
 
 async function guarded(fn) {
   busy.value = true
@@ -93,50 +150,63 @@ onMounted(() => guarded(loadRuns))
       <ul><li v-for="s in skipped" :key="s">{{ s }}</li></ul>
     </div>
 
-    <div class="card table-wrap">
-      <table>
-        <thead><tr><th>Period</th><th>Status</th><th class="num">Slips</th><th class="num">Total net pay</th><th></th></tr></thead>
-        <tbody>
-          <tr v-if="!runs.length"><td colspan="5" class="muted">No payroll runs yet.</td></tr>
-          <tr v-for="r in runs" :key="r.id" :class="{ selected: selected?.id === r.id }">
-            <td>{{ periodLabel(r.periodYear, r.periodMonth) }}</td>
-            <td><span :class="`badge ${r.status.toLowerCase()}`">{{ pretty(r.status) }}</span></td>
-            <td class="num">{{ r.slipCount }}</td>
-            <td class="num">{{ money(r.totalNet) }}</td>
-            <td class="actions">
-              <button class="btn small" @click="guarded(() => showSlips(r))">View slips</button>
-              <button v-if="r.status === 'DRAFT' && can('payroll:approve')" class="btn small" @click="submit(r)">Submit</button>
-              <button v-if="r.status === 'DRAFT' && can('payroll:write')" class="btn small danger" @click="remove(r)">Delete</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <DataTable
+      :columns="runColumns"
+      :rows="runs"
+      :selected-id="selected?.id ?? null"
+      empty-text="No payroll runs yet."
+      aria-label="Payroll runs"
+    >
+      <template #cell-periodYear="{ row }">{{ periodLabel(row.periodYear, row.periodMonth) }}</template>
+      <template #cell-status="{ row }"><span :class="`badge ${row.status.toLowerCase()}`">{{ pretty(row.status) }}</span></template>
+      <template #cell-totalNet="{ row }">{{ money(row.totalNet) }}</template>
+      <template #actions="{ row }">
+        <button class="btn small" @click="guarded(() => showSlips(row))">View slips</button>
+        <button v-if="row.status === 'DRAFT' && can('payroll:approve')" class="btn small" @click="submit(row)">Submit</button>
+        <button v-if="row.status === 'DRAFT' && can('payroll:write')" class="btn small danger" @click="remove(row)">Delete</button>
+      </template>
+      <template #footer>
+        <PaginationBar
+          v-if="runsTotal > 0"
+          :page="runsPage"
+          :page-size="runsSize"
+          :total-elements="runsTotal"
+          :total-pages="runsPages"
+          :loading="busy"
+          @update:page="onRunsPage"
+          @update:page-size="onRunsSize"
+        />
+      </template>
+    </DataTable>
 
     <template v-if="selected">
       <h2 class="section">Salary slips · {{ periodLabel(selected.periodYear, selected.periodMonth) }}</h2>
-      <div class="card table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Employee</th><th class="num">Paid days</th><th class="num">Unpaid days</th>
-              <th class="num">Gross</th><th class="num">Deductions</th><th class="num">Net pay</th><th></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-if="!slips.length"><td colspan="7" class="muted">No slips in this run.</td></tr>
-            <tr v-for="s in slips" :key="s.id">
-              <td>{{ s.employee.employeeCode }} · {{ s.employee.fullName }}</td>
-              <td class="num">{{ s.paymentDays }}</td>
-              <td class="num">{{ s.lwpDays }}</td>
-              <td class="num">{{ money(s.grossPay) }}</td>
-              <td class="num">{{ money(s.totalDeduction) }}</td>
-              <td class="num">{{ money(s.netPay) }}</td>
-              <td class="actions"><button class="btn small" @click="openSlip = s">View</button></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <DataTable
+        :columns="slipColumns"
+        :rows="slips"
+        empty-text="No slips in this run."
+        aria-label="Salary slips"
+      >
+        <template #cell-employee.employeeCode="{ row }">{{ row.employee.employeeCode }} · {{ row.employee.fullName }}</template>
+        <template #cell-grossPay="{ row }">{{ money(row.grossPay) }}</template>
+        <template #cell-totalDeduction="{ row }">{{ money(row.totalDeduction) }}</template>
+        <template #cell-netPay="{ row }">{{ money(row.netPay) }}</template>
+        <template #actions="{ row }">
+          <button class="btn small" @click="openSlip = row">View</button>
+        </template>
+        <template #footer>
+          <PaginationBar
+            v-if="slipsTotal > 0"
+            :page="slipsPage"
+            :page-size="slipsSize"
+            :total-elements="slipsTotal"
+            :total-pages="slipsPages"
+            :loading="busy"
+            @update:page="onSlipsPage"
+            @update:page-size="onSlipsSize"
+          />
+        </template>
+      </DataTable>
     </template>
 
     <SlipModal v-if="openSlip" :slip="openSlip" @close="openSlip = null" />

@@ -35,7 +35,7 @@ export default [
   {
     path: '/audit-log', group: 'Administration', title: 'Audit log', perm: 'admin', endpoint: '/admin/audit-logs',
     create: false, edit: false, remove: false,
-    hint: 'Every change made through the system and every login, newest first (latest 500).',
+    hint: 'Every change made through the system and every login, newest first.',
     columns: [
       { key: 'at', label: 'When' },
       { key: 'username', label: 'User' },

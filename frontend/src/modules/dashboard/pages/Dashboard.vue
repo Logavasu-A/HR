@@ -15,26 +15,36 @@ const leaveTrend = ref(null)
 const attendance = ref(null)
 const payroll = ref(null)
 
-const COLORS = ['#4f46e5', '#16a34a', '#f59e0b', '#dc2626', '#7c3aed', '#0891b2', '#64748b', '#db2777']
+const PRIMARY = '#6366F1'
+const SECONDARY = '#06B6D4'
+const SERIES = [PRIMARY, SECONDARY, '#818CF8', '#22D3EE', '#4F46E5', '#0891B2']
 
 Chart.defaults.font.family = "'Inter', system-ui, sans-serif"
-Chart.defaults.color = '#6b7390'
-Chart.defaults.borderColor = '#eceef6'
+Chart.defaults.color = '#71717A'
+Chart.defaults.borderColor = '#E4E4E7'
 Chart.defaults.plugins.legend.labels.usePointStyle = true
+Chart.defaults.plugins.legend.labels.boxWidth = 8
+Chart.defaults.plugins.legend.labels.boxHeight = 8
+Chart.defaults.plugins.tooltip.backgroundColor = '#18181B'
+Chart.defaults.plugins.tooltip.titleColor = '#FAFAFA'
+Chart.defaults.plugins.tooltip.bodyColor = '#E4E4E7'
+Chart.defaults.plugins.tooltip.padding = 10
+Chart.defaults.plugins.tooltip.cornerRadius = 8
 Chart.defaults.elements.bar.borderRadius = 6
 Chart.defaults.elements.line.borderWidth = 2.5
 Chart.defaults.elements.point.radius = 3
+Chart.defaults.elements.point.hoverRadius = 5
 
 const tiles = computed(() => {
   const c = data.value?.cards
   if (!c) return []
   return [
-    { label: 'Active employees', value: c.headcount, color: '#4f46e5', icon: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>' },
-    { label: 'Attrition, last 12 months', value: `${c.attritionRate}%`, color: '#dc2626', icon: '<polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/>' },
-    { label: 'Leave requests waiting', value: c.pendingLeaves, color: '#f59e0b', icon: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>' },
-    { label: 'Expense claims waiting', value: c.pendingExpenses, color: '#0891b2', icon: '<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>' },
-    { label: 'Open positions', value: c.openPositions, color: '#16a34a', icon: '<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>' },
-    { label: 'Applicants in pipeline', value: c.applicantsInPipeline, color: '#7c3aed', icon: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 11l-3 3-2-2"/>' },
+    { label: 'Active employees', value: c.headcount, color: '#10B981', icon: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>' },
+    { label: 'Attrition, last 12 months', value: `${c.attritionRate}%`, color: '#F43F5E', icon: '<polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/>' },
+    { label: 'Leave requests waiting', value: c.pendingLeaves, color: '#F59E0B', icon: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>' },
+    { label: 'Expense claims waiting', value: c.pendingExpenses, color: '#F59E0B', icon: '<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>' },
+    { label: 'Open positions', value: c.openPositions, color: '#6366F1', icon: '<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>' },
+    { label: 'Applicants in pipeline', value: c.applicantsInPipeline, color: '#06B6D4', icon: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 11l-3 3-2-2"/>' },
   ]
 })
 
@@ -44,44 +54,74 @@ function make(canvas, config) {
 
 const noLegend = { plugins: { legend: { display: false } }, maintainAspectRatio: false }
 const withLegend = { plugins: { legend: { position: 'bottom' } }, maintainAspectRatio: false }
-const wholeNumbers = { scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+const doughnutOptions = { ...withLegend, cutout: '68%' }
+const dashedScales = (whole = false) => ({
+  scales: {
+    x: {
+      border: { display: false, dash: [4, 4] },
+      grid: { display: false },
+      ticks: { color: '#71717A' },
+    },
+    y: {
+      beginAtZero: true,
+      border: { display: false, dash: [4, 4] },
+      grid: { color: '#E4E4E7' },
+      ticks: whole ? { color: '#71717A', precision: 0 } : { color: '#71717A' },
+    },
+  },
+})
 
 function draw(d) {
   make(department, {
     type: 'bar',
-    data: { labels: Object.keys(d.byDepartment), datasets: [{ data: Object.values(d.byDepartment), backgroundColor: COLORS[0] }] },
-    options: { ...noLegend, ...wholeNumbers },
+    data: {
+      labels: Object.keys(d.byDepartment),
+      datasets: [{ data: Object.values(d.byDepartment), backgroundColor: PRIMARY, hoverBackgroundColor: '#4F46E5' }],
+    },
+    options: { ...noLegend, ...dashedScales(true) },
   })
   make(gender, {
     type: 'doughnut',
-    data: { labels: Object.keys(d.byGender), datasets: [{ data: Object.values(d.byGender), backgroundColor: COLORS }] },
-    options: withLegend,
+    data: {
+      labels: Object.keys(d.byGender),
+      datasets: [{ data: Object.values(d.byGender), backgroundColor: SERIES, borderColor: '#FFFFFF', borderWidth: 2 }],
+    },
+    options: doughnutOptions,
   })
   make(movement, {
     type: 'line',
     data: {
       labels: d.movement.labels,
       datasets: [
-        { label: 'Joined', data: d.movement.joiners, borderColor: COLORS[1], backgroundColor: COLORS[1], tension: 0.3 },
-        { label: 'Left', data: d.movement.leavers, borderColor: COLORS[3], backgroundColor: COLORS[3], tension: 0.3 },
+        { label: 'Joined', data: d.movement.joiners, borderColor: PRIMARY, backgroundColor: 'rgba(99, 102, 241, 0.1)', pointBackgroundColor: PRIMARY, fill: true, tension: 0.35 },
+        { label: 'Left', data: d.movement.leavers, borderColor: SECONDARY, backgroundColor: 'rgba(6, 182, 212, 0.1)', pointBackgroundColor: SECONDARY, fill: true, tension: 0.35 },
       ],
     },
-    options: { ...withLegend, ...wholeNumbers },
+    options: { ...withLegend, ...dashedScales(true) },
   })
   make(leaveTrend, {
     type: 'bar',
-    data: { labels: d.leaveTrend.labels, datasets: [{ data: d.leaveTrend.days, backgroundColor: COLORS[2] }] },
-    options: { ...noLegend, scales: { y: { beginAtZero: true } } },
+    data: {
+      labels: d.leaveTrend.labels,
+      datasets: [{ data: d.leaveTrend.days, backgroundColor: SECONDARY, hoverBackgroundColor: '#0891B2' }],
+    },
+    options: { ...noLegend, ...dashedScales(false) },
   })
   make(attendance, {
     type: 'doughnut',
-    data: { labels: Object.keys(d.attendanceToday), datasets: [{ data: Object.values(d.attendanceToday), backgroundColor: COLORS }] },
-    options: withLegend,
+    data: {
+      labels: Object.keys(d.attendanceToday),
+      datasets: [{ data: Object.values(d.attendanceToday), backgroundColor: SERIES, borderColor: '#FFFFFF', borderWidth: 2 }],
+    },
+    options: doughnutOptions,
   })
   make(payroll, {
     type: 'line',
-    data: { labels: d.payroll.labels, datasets: [{ data: d.payroll.net, borderColor: COLORS[4], backgroundColor: COLORS[4], tension: 0.3 }] },
-    options: { ...noLegend, scales: { y: { beginAtZero: true } } },
+    data: {
+      labels: d.payroll.labels,
+      datasets: [{ data: d.payroll.net, borderColor: PRIMARY, backgroundColor: 'rgba(99, 102, 241, 0.1)', pointBackgroundColor: PRIMARY, fill: true, tension: 0.35 }],
+    },
+    options: { ...noLegend, ...dashedScales(false) },
   })
 }
 

@@ -2,20 +2,40 @@
 import { onMounted, ref } from 'vue'
 import { list, markAllRead, markRead } from '../services/notificationService'
 import { errorMessage } from '@/shared/utils'
+import PaginationBar from '@/shared/components/PaginationBar.vue'
 
 const items = ref([])
 const error = ref('')
 const loading = ref(true)
+const page = ref(0)
+const pageSize = ref(20)
+const totalElements = ref(0)
+const totalPages = ref(0)
 
 async function load() {
+  loading.value = true
+  error.value = ''
   try {
-    const data = await list()
-    items.value = data.items
+    const data = await list(page.value, pageSize.value)
+    items.value = data.items || []
+    totalElements.value = data.totalElements ?? items.value.length
+    totalPages.value = data.totalPages ?? (items.value.length ? 1 : 0)
   } catch (e) {
     error.value = errorMessage(e)
   } finally {
     loading.value = false
   }
+}
+
+function onPageChange(p) {
+  page.value = p
+  load()
+}
+
+function onPageSizeChange(s) {
+  pageSize.value = s
+  page.value = 0
+  load()
 }
 
 async function markAll() {
@@ -55,6 +75,18 @@ onMounted(load)
       <div class="note-title">{{ n.title }}</div>
       <div>{{ n.message }}</div>
       <div class="muted small-text">{{ n.createdAt.replace('T', ' ').slice(0, 16) }}</div>
+    </div>
+
+    <div v-if="!loading && totalElements > 0" class="card">
+      <PaginationBar
+        :page="page"
+        :page-size="pageSize"
+        :total-elements="totalElements"
+        :total-pages="totalPages"
+        :loading="loading"
+        @update:page="onPageChange"
+        @update:page-size="onPageSizeChange"
+      />
     </div>
   </div>
 </template>

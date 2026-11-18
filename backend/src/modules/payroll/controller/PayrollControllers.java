@@ -20,10 +20,12 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import shared.common.CrudController;
 import shared.common.ApiException;
+import shared.common.PageResponse;
 
 public class PayrollControllers {
 
@@ -69,7 +71,11 @@ public class PayrollControllers {
         }
 
         @GetMapping
-        public List<PayrollRun> list() {
+        public Object list(@RequestParam(required = false) Integer page,
+                           @RequestParam(defaultValue = "20") int size) {
+            if (page != null) {
+                return PageResponse.of(runs.findAllByOrderByPeriodYearDescPeriodMonthDesc(PageResponse.pageable(page, size)));
+            }
             return runs.findAllByOrderByPeriodYearDescPeriodMonthDesc();
         }
 
@@ -83,7 +89,12 @@ public class PayrollControllers {
         }
 
         @GetMapping("/{id}/slips")
-        public List<SalarySlip> slips(@PathVariable Long id) {
+        public Object slips(@PathVariable Long id,
+                            @RequestParam(required = false) Integer page,
+                            @RequestParam(defaultValue = "20") int size) {
+            if (page != null) {
+                return PageResponse.of(slips.findByRunIdOrderByEmployeeEmployeeCode(id, PageResponse.pageable(page, size)));
+            }
             return slips.findByRunIdOrderByEmployeeEmployeeCode(id);
         }
 

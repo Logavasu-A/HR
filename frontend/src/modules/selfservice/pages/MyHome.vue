@@ -2,6 +2,14 @@
 import { onMounted, ref } from 'vue'
 import * as me from '../services/selfService'
 import { errorMessage, pretty } from '@/shared/utils'
+import DataTable from '@/shared/components/DataTable.vue'
+
+const balanceColumns = [
+  { key: 'leaveType', label: 'Leave type' },
+  { key: 'allocated', label: 'Allocated', align: 'right' },
+  { key: 'used', label: 'Used or pending', align: 'right' },
+  { key: 'balance', label: 'Balance', align: 'right' },
+]
 
 const profile = ref(null)
 const today = ref(null)
@@ -75,19 +83,15 @@ onMounted(load)
     </div>
 
     <h2 class="section">Leave balance</h2>
-    <div class="card table-wrap">
-      <table>
-        <thead><tr><th>Leave type</th><th class="num">Allocated</th><th class="num">Used or pending</th><th class="num">Balance</th></tr></thead>
-        <tbody>
-          <tr v-if="!balances.length"><td colspan="4" class="muted">No leave types set up.</td></tr>
-          <tr v-for="b in balances" :key="b.leaveTypeId">
-            <td>{{ b.leaveType }}</td>
-            <td class="num">{{ b.unpaid ? '—' : b.allocated }}</td>
-            <td class="num">{{ b.used }}</td>
-            <td class="num">{{ b.unpaid ? '—' : b.balance }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <DataTable
+      :columns="balanceColumns"
+      :rows="balances"
+      row-key="leaveTypeId"
+      empty-text="No leave types set up."
+      aria-label="Leave balance"
+    >
+      <template #cell-allocated="{ row }">{{ row.unpaid ? '—' : row.allocated }}</template>
+      <template #cell-balance="{ row }">{{ row.unpaid ? '—' : row.balance }}</template>
+    </DataTable>
   </div>
 </template>

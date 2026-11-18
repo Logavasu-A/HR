@@ -27,20 +27,28 @@ function print() {
       </div>
 
       <div class="slip-cols">
-        <table>
-          <thead><tr><th>Earnings</th><th class="num">Amount</th></tr></thead>
-          <tbody>
-            <tr v-for="l in earnings" :key="l.id"><td>{{ l.componentName }}</td><td class="num">{{ money(l.amount) }}</td></tr>
-            <tr class="total"><td>Gross pay</td><td class="num">{{ money(slip.grossPay) }}</td></tr>
-          </tbody>
-        </table>
-        <table>
-          <thead><tr><th>Deductions</th><th class="num">Amount</th></tr></thead>
-          <tbody>
-            <tr v-for="l in deductions" :key="l.id"><td>{{ l.componentName }}</td><td class="num">{{ money(l.amount) }}</td></tr>
-            <tr class="total"><td>Total deductions</td><td class="num">{{ money(slip.totalDeduction) }}</td></tr>
-          </tbody>
-        </table>
+        <div class="table-card">
+          <div class="table-wrapper table-wrapper--auto">
+            <table class="data-table data-table--compact">
+              <thead><tr><th>Earnings</th><th class="num">Amount</th></tr></thead>
+              <tbody>
+                <tr v-for="l in earnings" :key="l.id"><td>{{ l.componentName }}</td><td class="num">{{ money(l.amount) }}</td></tr>
+                <tr class="total"><td>Gross pay</td><td class="num">{{ money(slip.grossPay) }}</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="table-card">
+          <div class="table-wrapper table-wrapper--auto">
+            <table class="data-table data-table--compact">
+              <thead><tr><th>Deductions</th><th class="num">Amount</th></tr></thead>
+              <tbody>
+                <tr v-for="l in deductions" :key="l.id"><td>{{ l.componentName }}</td><td class="num">{{ money(l.amount) }}</td></tr>
+                <tr class="total"><td>Total deductions</td><td class="num">{{ money(slip.totalDeduction) }}</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
       <div class="net">Net pay: {{ money(slip.netPay) }}</div>

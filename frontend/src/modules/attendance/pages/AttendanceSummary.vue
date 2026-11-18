@@ -1,7 +1,9 @@
 <script setup>
-import { onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { getMonthlySummary } from '../services/attendanceService'
 import { errorMessage, MONTHS } from '@/shared/utils'
+import DataTable from '@/shared/components/DataTable.vue'
+import PaginationBar from '@/shared/components/PaginationBar.vue'
 
 const now = new Date()
 const year = ref(now.getFullYear())
@@ -9,17 +11,43 @@ const month = ref(now.getMonth() + 1)
 const rows = ref([])
 const error = ref('')
 const loading = ref(false)
+const page = ref(0)
+const pageSize = ref(20)
+
+const columns = [
+  { key: 'employeeCode', label: 'Employee' },
+  { key: 'PRESENT', label: 'Present', align: 'right' },
+  { key: 'ABSENT', label: 'Absent', align: 'right' },
+  { key: 'HALF_DAY', label: 'Half day', align: 'right' },
+  { key: 'ON_LEAVE', label: 'On leave', align: 'right' },
+  { key: 'WORK_FROM_HOME', label: 'Work from home', align: 'right' },
+  { key: 'workingHours', label: 'Hours worked', align: 'right' },
+]
+
+const totalElements = computed(() => rows.value.length)
+const totalPages = computed(() => Math.ceil(rows.value.length / pageSize.value))
+const pagedRows = computed(() => {
+  const start = page.value * pageSize.value
+  return rows.value.slice(start, start + pageSize.value)
+})
 
 async function load() {
   loading.value = true
   error.value = ''
   try {
-    rows.value = await getMonthlySummary(year.value, month.value)
+    const data = await getMonthlySummary(year.value, month.value)
+    rows.value = Array.isArray(data) ? data : (data?.employees || [])
+    page.value = 0
   } catch (e) {
     error.value = errorMessage(e)
   } finally {
     loading.value = false
   }
+}
+
+function onPageSizeChange(s) {
+  pageSize.value = s
+  page.value = 0
 }
 
 watch([year, month], load)
@@ -38,30 +66,33 @@ onMounted(load)
     </div>
     <div v-if="error" class="alert">{{ error }}</div>
 
-    <div class="card table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Employee</th><th class="num">Present</th><th class="num">Absent</th><th class="num">Half day</th>
-            <th class="num">On leave</th><th class="num">Work from home</th><th class="num">Hours worked</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-if="loading"><td colspan="7" class="muted">Loading…</td></tr>
-          <tr v-else-if="!rows.length"><td colspan="7" class="muted">No active employees.</td></tr>
-          <template v-else>
-            <tr v-for="r in rows" :key="r.employeeId">
-              <td>{{ r.employeeCode }} · {{ r.name }}</td>
-              <td class="num">{{ r.PRESENT }}</td>
-              <td class="num">{{ r.ABSENT }}</td>
-              <td class="num">{{ r.HALF_DAY }}</td>
-              <td class="num">{{ r.ON_LEAVE }}</td>
-              <td class="num">{{ r.WORK_FROM_HOME }}</td>
-              <td class="num">{{ r.workingHours }}</td>
-            </tr>
-          </template>
-        </tbody>
-      </table>
-    </div>
+    <DataTable
+      :columns="columns"
+      :rows="pagedRows"
+      row-key="employeeId"
+      :loading="loading"
+      empty-text="No active employees."
+      aria-label="Attendance summary"
+    >
+      <template #cell-employeeCode="{ row }">{{ row.employeeCode }} · {{ row.name ?? row.employeeName }}</template>
+      <template #cell-PRESENT="{ row }">{{ row.PRESENT ?? row.present ?? 0 }}</template>
+      <template #cell-ABSENT="{ row }">{{ row.ABSENT ?? row.absent ?? 0 }}</template>
+      <template #cell-HALF_DAY="{ row }">{{ row.HALF_DAY ?? row.halfDay ?? 0 }}</template>
+      <template #cell-ON_LEAVE="{ row }">{{ row.ON_LEAVE ?? row.onLeave ?? 0 }}</template>
+      <template #cell-WORK_FROM_HOME="{ row }">{{ row.WORK_FROM_HOME ?? row.workFromHome ?? 0 }}</template>
+      <template #cell-workingHours="{ row }">{{ row.workingHours ?? '—' }}</template>
+      <template #footer>
+        <PaginationBar
+          v-if="!loading && totalElements > 0"
+          :page="page"
+          :page-size="pageSize"
+          :total-elements="totalElements"
+          :total-pages="totalPages"
+          :loading="loading"
+          @update:page="(p) => (page = p)"
+          @update:page-size="onPageSizeChange"
+        />
+      </template>
+    </DataTable>
   </div>
 </template>

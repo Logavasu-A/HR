@@ -11,10 +11,12 @@ import java.util.List;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import shared.common.CrudController;
 import shared.common.ApiException;
+import shared.common.PageResponse;
 import modules.audit.model.AuditLog;
 import modules.audit.repository.AuditLogRepo;
 import shared.security.CurrentUser;
@@ -86,7 +88,11 @@ public class AdminControllers {
         }
 
         @GetMapping("/audit-logs")
-        public List<AuditLog> auditLogs() {
+        public Object auditLogs(@RequestParam(required = false) Integer page,
+                                @RequestParam(defaultValue = "20") int size) {
+            if (page != null) {
+                return PageResponse.of(auditLogs.findAllByOrderByAtDesc(PageResponse.pageable(page, size)));
+            }
             return auditLogs.findTop500ByOrderByAtDesc();
         }
 

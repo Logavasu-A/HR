@@ -1,0 +1,344 @@
+/* ==========================================================================
+   HRMS Centralized Global Table Theme & Sticky Scroll Architecture
+   --------------------------------------------------------------------------
+   Single authoritative source of truth for EVERY table across all HRMS modules.
+   Updating any variable in :root immediately updates all tables application-wide.
+   ========================================================================== */
+
+:root {
+  /* Table Header */
+  --table-header-bg: #09090B;
+  --table-header-color: #FAFAFA;
+  --table-header-font-size: 12px;
+  --table-header-font-weight: 600;
+  --table-header-height: 46px;
+  --table-header-hover-bg: #18181B;
+
+  /* Table Body */
+  --table-body-bg: #FFFFFF;
+  --table-body-color: #18181B;
+  --table-body-font-size: 13.5px;
+  --table-body-font-weight: 400;
+  --table-row-hover: #F4F4F5;
+  --table-row-alternate: #FAFAFA;
+  --table-row-selected: rgba(99, 102, 241, 0.08);
+  --table-row-selected-accent: #6366F1;
+
+  /* Borders & Elevation */
+  --table-border-color: #E4E4E7;
+  --table-border-strong: #D4D4D8;
+  --table-border-radius: 10px;
+  --table-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+
+  /* Dimensions */
+  --table-row-height: 48px;
+  --table-cell-padding: 12px 16px;
+  --table-compact-row-height: 40px;
+  --table-compact-cell-padding: 8px 12px;
+
+  /* Scrolling */
+  --table-max-height: 520px;
+  --table-inline-max-height: 260px;
+  --table-scrollbar-size: 8px;
+  --table-scrollbar-track: #FAFAFA;
+  --table-scrollbar-thumb: #D4D4D8;
+  --table-scrollbar-thumb-hover: #A1A1AA;
+}
+
+/* ---------- Outer Card Container (holds scroll viewport + pinned footer) ---------- */
+.table-card {
+  background: var(--table-body-bg);
+  border: 1px solid var(--table-border-color);
+  border-radius: var(--table-border-radius);
+  box-shadow: var(--table-shadow);
+  overflow: hidden;
+  width: 100%;
+}
+
+.table-card--inline {
+  margin-bottom: 10px;
+  box-shadow: none;
+}
+
+/* ---------- Scroll Viewport (Vertical + Horizontal, Sticky Header Anchor) ---------- */
+.table-wrapper {
+  position: relative;
+  width: 100%;
+  max-height: var(--table-max-height);
+  overflow: auto;
+  background: var(--table-body-bg);
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+.table-wrapper--inline {
+  max-height: var(--table-inline-max-height);
+}
+
+.table-wrapper--auto {
+  max-height: none;
+}
+
+.table-wrapper:focus-visible {
+  outline: 2px solid var(--table-row-selected-accent);
+  outline-offset: -2px;
+}
+
+/* Crisp custom scrollbars scoped to table viewports */
+.table-wrapper::-webkit-scrollbar {
+  width: var(--table-scrollbar-size);
+  height: var(--table-scrollbar-size);
+}
+
+.table-wrapper::-webkit-scrollbar-track {
+  background: var(--table-scrollbar-track);
+}
+
+.table-wrapper::-webkit-scrollbar-thumb {
+  background: var(--table-scrollbar-thumb);
+  border-radius: 999px;
+  border: 2px solid var(--table-scrollbar-track);
+}
+
+.table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: var(--table-scrollbar-thumb-hover);
+}
+
+.table-wrapper::-webkit-scrollbar-corner {
+  background: var(--table-scrollbar-track);
+}
+
+/* ---------- Base Table Styling (All Tables Inherit Global Tokens) ---------- */
+table,
+.data-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: var(--table-body-bg);
+  color: var(--table-body-color);
+  font-size: var(--table-body-font-size);
+  font-weight: var(--table-body-font-weight);
+}
+
+/* ---------- Sticky Header ---------- */
+.table-wrapper thead th,
+table thead th,
+.data-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  height: var(--table-header-height);
+  padding: var(--table-cell-padding);
+  background: var(--table-header-bg);
+  color: var(--table-header-color);
+  font-size: var(--table-header-font-size);
+  font-weight: var(--table-header-font-weight);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-align: left;
+  white-space: nowrap;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--table-border-color);
+  background-clip: padding-box;
+  user-select: none;
+}
+
+/* Interactive sortable header */
+.data-table thead th.sortable {
+  cursor: pointer;
+  transition: background-color 0.14s ease;
+}
+
+.data-table thead th.sortable:hover {
+  background: var(--table-header-hover-bg);
+}
+
+.data-table thead th.sortable:focus-visible {
+  outline: 2px solid var(--table-row-selected-accent);
+  outline-offset: -2px;
+}
+
+.th-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.data-table thead th.num .th-inner {
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.sort-indicator {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  line-height: 1;
+  opacity: 0.45;
+  transition: opacity 0.14s ease, color 0.14s ease;
+}
+
+.data-table thead th.sorted .sort-indicator {
+  opacity: 1;
+  color: #818CF8;
+}
+
+/* ---------- Table Body Rows & Cells ---------- */
+table tbody tr,
+.data-table tbody tr {
+  height: var(--table-row-height);
+  background: var(--table-body-bg);
+  transition: background-color 0.12s ease;
+}
+
+table tbody tr:nth-child(even),
+.data-table tbody tr:nth-child(even) {
+  background: var(--table-row-alternate);
+}
+
+table tbody tr:hover,
+.data-table tbody tr:hover {
+  background: var(--table-row-hover);
+}
+
+table tbody tr.selected,
+.data-table tbody tr.selected {
+  background: var(--table-row-selected);
+}
+
+table tbody tr.selected td:first-child,
+.data-table tbody tr.selected td:first-child {
+  box-shadow: inset 3px 0 0 var(--table-row-selected-accent);
+}
+
+table tbody td,
+.data-table tbody td {
+  padding: var(--table-cell-padding);
+  border-bottom: 1px solid var(--table-border-color);
+  vertical-align: middle;
+  color: var(--table-body-color);
+  text-align: left;
+}
+
+table tbody tr:last-child td,
+.data-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Total / summary rows (e.g., Payslip modal) */
+table tbody tr.total,
+.data-table tbody tr.total {
+  background: var(--table-row-alternate);
+}
+
+table tbody tr.total td,
+.data-table tbody tr.total td {
+  font-weight: 600;
+  border-top: 2px solid var(--table-border-strong);
+  border-bottom: none;
+}
+
+/* Empty & loading state rows */
+.data-table tbody tr.table-state-row,
+.data-table tbody tr.table-state-row:nth-child(even),
+.data-table tbody tr.table-state-row:hover {
+  background: var(--table-body-bg);
+  height: auto;
+}
+
+/* Alignment & utility classes */
+th.num,
+td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+th.table-check-col,
+td.table-check-col {
+  width: 44px;
+  text-align: center;
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+th.actions-col,
+td.actions {
+  text-align: right;
+  white-space: nowrap;
+}
+
+td.actions .btn {
+  margin-left: 6px;
+}
+
+td.actions .btn:first-child {
+  margin-left: 0;
+}
+
+.empty {
+  text-align: center !important;
+  padding: 40px 16px !important;
+  color: var(--muted);
+}
+
+.empty-icon {
+  font-size: 28px;
+  display: block;
+  margin-bottom: 6px;
+  opacity: 0.65;
+}
+
+/* Compact tables (modal line-items & payslip tables) */
+.data-table--compact thead th,
+table.lines thead th {
+  height: var(--table-compact-row-height);
+  padding: var(--table-compact-cell-padding);
+}
+
+.data-table--compact tbody tr,
+table.lines tbody tr {
+  height: var(--table-compact-row-height);
+}
+
+.data-table--compact tbody td,
+table.lines tbody td {
+  padding: var(--table-compact-cell-padding);
+}
+
+/* Pinned table footer (PaginationBar) */
+.table-card > .pagination-bar {
+  border-top: 1px solid var(--table-border-color);
+  border-radius: 0;
+}
+
+/* ---------- Responsive Adjustments ---------- */
+@media (max-width: 1024px) {
+  :root {
+    --table-cell-padding: 10px 14px;
+  }
+}
+
+@media (max-width: 800px) {
+  :root {
+    --table-cell-padding: 10px 12px;
+    --table-max-height: 60vh;
+  }
+}
+
+/* ---------- Print Support (Payslip PDF Export) ---------- */
+@media print {
+  .table-wrapper,
+  .table-wrapper--inline,
+  .table-wrapper--auto {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .table-wrapper thead th,
+  table thead th,
+  .data-table thead th {
+    position: static !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

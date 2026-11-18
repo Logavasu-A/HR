@@ -10,12 +10,15 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import shared.common.CrudController;
+import shared.common.PageResponse;
 
 public class AttendanceControllers {
 
@@ -46,6 +49,14 @@ public class AttendanceControllers {
             LocalDate today = LocalDate.now();
             return attendance.findByAttendanceDateBetweenOrderByAttendanceDateDesc(
                     today.minusMonths(2), today.plusMonths(1));
+        }
+
+        @Override
+        protected Page<Attendance> findPage(Pageable pageable) {
+            LocalDate today = LocalDate.now();
+            return attendance.findByAttendanceDateBetweenOrderByAttendanceDateDesc(
+                    today.minusMonths(2), today.plusMonths(1),
+                    PageResponse.pageable(pageable.getPageNumber(), pageable.getPageSize()));
         }
 
         @Override

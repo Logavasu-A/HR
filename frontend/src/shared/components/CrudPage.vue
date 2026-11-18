@@ -1,9 +1,11 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import api from '@/shared/api'
 import { can } from '@/shared/auth'
 import { errorMessage, getPath, money, pretty } from '@/shared/utils'
 import FieldInput from './FieldInput.vue'
+import DataTable from './DataTable.vue'
+import PaginationBar from './PaginationBar.vue'
 
 const props = defineProps({ config: { type: Object, required: true } })
 
@@ -11,6 +13,10 @@ const rows = ref([])
 const loading = ref(true)
 const error = ref('')
 const search = ref('')
+const page = ref(0)
+const pageSize = ref(20)
+const totalElements = ref(0)
+const totalPages = ref(0)
 
 const showForm = ref(false)
 const editingId = ref(null)
@@ -29,7 +35,6 @@ const canRemove = computed(() => flag('remove'))
 const rowActions = (row) =>
   (props.config.actions || []).filter((a) => (!a.perm || can(a.perm)) && (!a.show || a.show(row)))
 const hasActionColumn = computed(() => canEdit.value || canRemove.value || (props.config.actions || []).length > 0)
-const colspan = computed(() => props.config.columns.length + (hasActionColumn.value ? 1 : 0))
 
 // ---- table ----
 function cell(col, row) {
@@ -66,13 +71,43 @@ async function load() {
   loading.value = true
   error.value = ''
   try {
-    const { data } = await api.get(props.config.endpoint)
-    rows.value = Array.isArray(data) ? data : []
+    const { data } = await api.get(props.config.endpoint, {
+      params: { page: page.value, size: pageSize.value },
+    })
+    if (Array.isArray(data)) {
+      rows.value = data
+      totalElements.value = data.length
+      totalPages.value = data.length ? 1 : 0
+    } else if (data && Array.isArray(data.content)) {
+      rows.value = data.content
+      totalElements.value = data.totalElements ?? data.content.length
+      totalPages.value = data.totalPages ?? (data.content.length ? 1 : 0)
+      if (data.content.length === 0 && page.value > 0 && totalPages.value > 0) {
+        page.value = Math.max(0, totalPages.value - 1)
+        await load()
+        return
+      }
+    } else {
+      rows.value = []
+      totalElements.value = 0
+      totalPages.value = 0
+    }
   } catch (e) {
     error.value = errorMessage(e)
   } finally {
     loading.value = false
   }
+}
+
+function onPageChange(nextPage) {
+  page.value = nextPage
+  load()
+}
+
+function onPageSizeChange(nextSize) {
+  pageSize.value = nextSize
+  page.value = 0
+  load()
 }
 
 // ---- form <-> record conversion ----
@@ -111,7 +146,7 @@ async function loadOptions(fields) {
       await loadOptions(f.fields)
     } else if (f.endpoint && !refOptions[f.endpoint]) {
       const { data } = await api.get(f.endpoint)
-      refOptions[f.endpoint] = data
+      refOptions[f.endpoint] = Array.isArray(data) ? data : (data?.content || [])
     }
   }
 }
@@ -183,6 +218,15 @@ async function runAction(action, row) {
   }
 }
 
+watch(
+  () => props.config.endpoint,
+  () => {
+    page.value = 0
+    search.value = ''
+    load()
+  },
+)
+
 onMounted(load)
 </script>
 
@@ -197,41 +241,40 @@ onMounted(load)
     <p v-if="config.hint" class="hint">{{ config.hint }}</p>
     <div v-if="error" class="alert">{{ error }}</div>
 
-    <div class="card table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th v-for="c in config.columns" :key="c.key" :class="{ num: c.money }">{{ c.label }}</th>
-            <th v-if="hasActionColumn"></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-if="loading"><td :colspan="colspan" class="empty">Loading…</td></tr>
-          <tr v-else-if="!filtered.length">
-            <td :colspan="colspan" class="empty">
-              <span class="empty-icon">{{ rows.length ? '🔍' : '📭' }}</span>
-              {{ rows.length ? 'Nothing matches the search.' : 'No records yet.' }}
-            </td>
-          </tr>
-          <template v-else>
-            <tr v-for="row in filtered" :key="row.id">
-              <td v-for="c in config.columns" :key="c.key" :class="{ num: c.money, nowrap: isShort(c, row) }">
-                <span :class="badgeClass(c, row)">{{ cell(c, row) }}</span>
-              </td>
-              <td v-if="hasActionColumn" class="actions">
-                <button
-                  v-for="a in rowActions(row)" :key="a.label"
-                  class="btn small" :class="{ danger: a.danger }" @click="runAction(a, row)"
-                >{{ a.label }}</button>
-                <button v-if="canEdit" class="btn small" @click="openForm(row)">Edit</button>
-                <button v-if="canRemove" class="btn small danger" @click="remove(row)">Delete</button>
-              </td>
-            </tr>
-          </template>
-        </tbody>
-      </table>
-      <div v-if="!loading && rows.length" class="record-count">{{ filtered.length }} of {{ rows.length }} records</div>
-    </div>
+    <DataTable
+      :columns="config.columns"
+      :rows="filtered"
+      :loading="loading"
+      :has-actions="hasActionColumn"
+      :format-cell="cell"
+      :badge-class="badgeClass"
+      :is-short="isShort"
+      :empty-icon="rows.length ? '🔍' : '📭'"
+      :empty-text="rows.length ? 'Nothing matches the search.' : 'No records yet.'"
+      :aria-label="config.title"
+    >
+      <template v-if="hasActionColumn" #actions="{ row }">
+        <button
+          v-for="a in rowActions(row)" :key="a.label"
+          class="btn small" :class="{ danger: a.danger }" @click="runAction(a, row)"
+        >{{ a.label }}</button>
+        <button v-if="canEdit" class="btn small" @click="openForm(row)">Edit</button>
+        <button v-if="canRemove" class="btn small danger" @click="remove(row)">Delete</button>
+      </template>
+      <template #footer>
+        <PaginationBar
+          v-if="!loading && totalElements > 0"
+          :page="page"
+          :page-size="pageSize"
+          :total-elements="totalElements"
+          :total-pages="totalPages"
+          :loading="loading"
+          :filtered-count="search.trim() ? filtered.length : null"
+          @update:page="onPageChange"
+          @update:page-size="onPageSizeChange"
+        />
+      </template>
+    </DataTable>
 
     <div v-if="showForm" class="modal-backdrop" @click.self="showForm = false">
       <form class="modal" @submit.prevent="save">
@@ -242,20 +285,24 @@ onMounted(load)
           <template v-for="f in config.fields" :key="f.key">
             <div v-if="f.type === 'lines'" class="field wide">
               <label>{{ f.label }}</label>
-              <table class="lines">
-                <thead>
-                  <tr><th v-for="lf in f.fields" :key="lf.key">{{ lf.label }}</th><th></th></tr>
-                </thead>
-                <tbody>
-                  <tr v-for="(line, i) in form[f.key]" :key="i">
-                    <td v-for="lf in f.fields" :key="lf.key">
-                      <FieldInput v-model="line[lf.key]" :field="lf" :options="refOptions[lf.endpoint] || []" />
-                    </td>
-                    <td><button type="button" class="btn small danger" @click="form[f.key].splice(i, 1)">Remove</button></td>
-                  </tr>
-                  <tr v-if="!form[f.key].length"><td :colspan="f.fields.length + 1" class="muted">No rows.</td></tr>
-                </tbody>
-              </table>
+              <div class="table-card table-card--inline">
+                <div class="table-wrapper table-wrapper--inline">
+                  <table class="data-table data-table--compact lines">
+                    <thead>
+                      <tr><th v-for="lf in f.fields" :key="lf.key">{{ lf.label }}</th><th class="actions-col"></th></tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="(line, i) in form[f.key]" :key="i">
+                        <td v-for="lf in f.fields" :key="lf.key">
+                          <FieldInput v-model="line[lf.key]" :field="lf" :options="refOptions[lf.endpoint] || []" />
+                        </td>
+                        <td class="actions"><button type="button" class="btn small danger" @click="form[f.key].splice(i, 1)">Remove</button></td>
+                      </tr>
+                      <tr v-if="!form[f.key].length" class="table-state-row"><td :colspan="f.fields.length + 1" class="empty">No rows.</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
               <button type="button" class="btn small" @click="addLine(f)">Add row</button>
             </div>
             <div v-else class="field" :class="{ wide: f.type === 'textarea' || f.type === 'multicheck', inline: f.type === 'checkbox' }">

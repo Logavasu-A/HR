@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import shared.common.ApiException;
+import shared.common.PageResponse;
 import modules.attendance.model.Attendance;
 import modules.attendance.repository.AttendanceRepo;
 import modules.attendance.service.AttendanceService;
@@ -84,8 +85,14 @@ public class MeController {
     // ---- leave ----
 
     @GetMapping("/leaves")
-    public List<LeaveApplication> leaves() {
-        return leaveApplications.findByEmployeeIdOrderByFromDateDesc(CurrentUser.employeeId());
+    public Object leaves(@RequestParam(required = false) Integer page,
+                         @RequestParam(defaultValue = "20") int size) {
+        Long empId = CurrentUser.employeeId();
+        if (page != null) {
+            return PageResponse.of(leaveApplications.findByEmployeeIdOrderByFromDateDesc(
+                    empId, PageResponse.pageable(page, size)));
+        }
+        return leaveApplications.findByEmployeeIdOrderByFromDateDesc(empId);
     }
 
     @PostMapping("/leaves")
@@ -106,12 +113,19 @@ public class MeController {
     // ---- attendance ----
 
     @GetMapping("/attendance")
-    public List<Attendance> attendance(@RequestParam(required = false) Integer year,
-                                       @RequestParam(required = false) Integer month) {
+    public Object attendance(@RequestParam(required = false) Integer year,
+                             @RequestParam(required = false) Integer month,
+                             @RequestParam(required = false) Integer page,
+                             @RequestParam(defaultValue = "20") int size) {
         LocalDate today = LocalDate.now();
         YearMonth ym = YearMonth.of(year == null ? today.getYear() : year, month == null ? today.getMonthValue() : month);
+        Long empId = CurrentUser.employeeId();
+        if (page != null) {
+            return PageResponse.of(attendance.findByEmployeeIdAndAttendanceDateBetweenOrderByAttendanceDate(
+                    empId, ym.atDay(1), ym.atEndOfMonth(), PageResponse.pageable(page, size)));
+        }
         return attendance.findByEmployeeIdAndAttendanceDateBetweenOrderByAttendanceDate(
-                CurrentUser.employeeId(), ym.atDay(1), ym.atEndOfMonth());
+                empId, ym.atDay(1), ym.atEndOfMonth());
     }
 
     @GetMapping("/attendance/today")
@@ -132,16 +146,28 @@ public class MeController {
     // ---- payslips ----
 
     @GetMapping("/payslips")
-    public List<SalarySlip> payslips() {
+    public Object payslips(@RequestParam(required = false) Integer page,
+                           @RequestParam(defaultValue = "20") int size) {
+        Long empId = CurrentUser.employeeId();
+        if (page != null) {
+            return PageResponse.of(slips.findByEmployeeIdAndStatusOrderByPeriodYearDescPeriodMonthDesc(
+                    empId, PayrollRun.Status.SUBMITTED, PageResponse.pageable(page, size)));
+        }
         return slips.findByEmployeeIdAndStatusOrderByPeriodYearDescPeriodMonthDesc(
-                CurrentUser.employeeId(), PayrollRun.Status.SUBMITTED);
+                empId, PayrollRun.Status.SUBMITTED);
     }
 
     // ---- expenses ----
 
     @GetMapping("/expenses")
-    public List<ExpenseClaim> expenses() {
-        return claims.findByEmployeeIdOrderByClaimDateDesc(CurrentUser.employeeId());
+    public Object expenses(@RequestParam(required = false) Integer page,
+                           @RequestParam(defaultValue = "20") int size) {
+        Long empId = CurrentUser.employeeId();
+        if (page != null) {
+            return PageResponse.of(claims.findByEmployeeIdOrderByClaimDateDesc(
+                    empId, PageResponse.pageable(page, size)));
+        }
+        return claims.findByEmployeeIdOrderByClaimDateDesc(empId);
     }
 
     @PostMapping("/expenses")
@@ -152,8 +178,14 @@ public class MeController {
     // ---- performance ----
 
     @GetMapping("/goals")
-    public List<Goal> goals() {
-        return goals.findByEmployeeIdOrderByIdDesc(CurrentUser.employeeId());
+    public Object goals(@RequestParam(required = false) Integer page,
+                        @RequestParam(defaultValue = "20") int size) {
+        Long empId = CurrentUser.employeeId();
+        if (page != null) {
+            return PageResponse.of(goals.findByEmployeeIdOrderByIdDesc(
+                    empId, PageResponse.pageable(page, size)));
+        }
+        return goals.findByEmployeeIdOrderByIdDesc(empId);
     }
 
     @PostMapping("/goals/{id}/progress")
@@ -175,8 +207,14 @@ public class MeController {
     }
 
     @GetMapping("/appraisals")
-    public List<Appraisal> appraisals() {
-        return appraisals.findByEmployeeIdOrderByIdDesc(CurrentUser.employeeId());
+    public Object appraisals(@RequestParam(required = false) Integer page,
+                             @RequestParam(defaultValue = "20") int size) {
+        Long empId = CurrentUser.employeeId();
+        if (page != null) {
+            return PageResponse.of(appraisals.findByEmployeeIdOrderByIdDesc(
+                    empId, PageResponse.pageable(page, size)));
+        }
+        return appraisals.findByEmployeeIdOrderByIdDesc(empId);
     }
 
     @PostMapping("/appraisals/{id}/self-rating")
