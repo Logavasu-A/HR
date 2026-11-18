@@ -49,7 +49,7 @@ onMounted(load)
 </script>
 
 <template>
-  <div class="page">
+  <div>
     <div class="page-head"><h1>My space</h1></div>
     <div v-if="error" class="alert">{{ error }}</div>
 
@@ -76,8 +76,8 @@ onMounted(load)
           <dt>Hours</dt><dd>{{ today.workingHours ?? '—' }}</dd>
         </dl>
         <div class="row-gap">
-          <button type="button" class="btn primary" :disabled="busy || !!today?.inTime" @click="punch('check-in')">Check in</button>
-          <button type="button" class="btn" :disabled="busy || !today?.inTime || !!today?.outTime" @click="punch('check-out')">Check out</button>
+          <button class="btn primary" :disabled="busy || !!today?.inTime" @click="punch('check-in')">Check in</button>
+          <button class="btn" :disabled="busy || !today?.inTime || !!today?.outTime" @click="punch('check-out')">Check out</button>
         </div>
       </div>
     </div>

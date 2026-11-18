@@ -59,7 +59,7 @@ onMounted(load)
 </script>
 
 <template>
-  <div class="page">
+  <div>
     <div class="page-head"><h1>My payslips</h1></div>
     <div v-if="error" class="alert">{{ error }}</div>
     <DataTable

@@ -103,6 +103,7 @@ async function toggle() {
 function select(item) {
   if (item.disabled) return
   close()
+  triggerRef.value?.focus({ preventScroll: true })
   item.onClick?.()
 }
 
@@ -138,8 +139,8 @@ function onKeydown(e) {
   }
 }
 
-function onScroll() {
-  if (isOpen.value) close()
+function onScroll(event) {
+  if (isOpen.value && event.target !== menuRef.value) close()
 }
 
 onMounted(() => {

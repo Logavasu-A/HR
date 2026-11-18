@@ -6,7 +6,7 @@ export default [
     columns: [
       { key: 'title', label: 'Title' },
       { key: 'department.name', label: 'Department' },
-      { key: 'vacancies', label: 'Vacancies' },
+      { key: 'vacancies', label: 'Vacancies', align: 'right' },
       { key: 'postedOn', label: 'Posted' },
       { key: 'closesOn', label: 'Closes' },
       { key: 'status', label: 'Status', badge: true },
@@ -29,7 +29,7 @@ export default [
       { key: 'jobOpening.title', label: 'Opening' },
       { key: 'email', label: 'Email' },
       { key: 'appliedOn', label: 'Applied' },
-      { key: 'rating', label: 'Rating' },
+      { key: 'rating', label: 'Rating', align: 'right' },
       { key: 'status', label: 'Stage', badge: true },
     ],
     fields: [
@@ -63,7 +63,7 @@ export default [
       { key: 'scheduledAt', label: 'When' },
       { key: 'interviewer.fullName', label: 'Interviewer' },
       { key: 'mode', label: 'Mode' },
-      { key: 'rating', label: 'Rating' },
+      { key: 'rating', label: 'Rating', align: 'right' },
       { key: 'status', label: 'Status', badge: true },
     ],
     fields: [

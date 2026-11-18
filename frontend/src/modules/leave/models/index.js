@@ -9,7 +9,7 @@ export default [
       { key: 'leaveType.name', label: 'Type' },
       { key: 'fromDate', label: 'From' },
       { key: 'toDate', label: 'To' },
-      { key: 'totalDays', label: 'Days' },
+      { key: 'totalDays', label: 'Days', align: 'right' },
       { key: 'reason', label: 'Reason' },
       { key: 'status', label: 'Status', badge: true },
     ],
@@ -37,7 +37,7 @@ export default [
       { key: 'leaveType.name', label: 'Type' },
       { key: 'fromDate', label: 'From' },
       { key: 'toDate', label: 'To' },
-      { key: 'days', label: 'Days' },
+      { key: 'days', label: 'Days', align: 'right' },
     ],
     fields: [
       employeeField,
@@ -51,7 +51,7 @@ export default [
     path: '/leave-types', group: 'Leave', title: 'Leave types', perm: 'leave', endpoint: '/leave/types',
     columns: [
       { key: 'name', label: 'Name' },
-      { key: 'maxDaysPerYear', label: 'Max days / year' },
+      { key: 'maxDaysPerYear', label: 'Max days / year', align: 'right' },
       { key: 'carryForward', label: 'Carry forward' },
       { key: 'unpaid', label: 'Unpaid' },
       { key: 'allowNegative', label: 'Allow negative' },

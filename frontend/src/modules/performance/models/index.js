@@ -7,9 +7,9 @@ export default [
     columns: [
       { key: 'employee.fullName', label: 'Employee' },
       { key: 'cycle.name', label: 'Cycle' },
-      { key: 'selfRating', label: 'Self' },
-      { key: 'managerRating', label: 'Manager' },
-      { key: 'finalScore', label: 'Final' },
+      { key: 'selfRating', label: 'Self', align: 'right' },
+      { key: 'managerRating', label: 'Manager', align: 'right' },
+      { key: 'finalScore', label: 'Final', align: 'right' },
       { key: 'status', label: 'Status', badge: true },
     ],
     fields: [
@@ -32,8 +32,8 @@ export default [
       { key: 'employee.fullName', label: 'Employee' },
       { key: 'title', label: 'Goal' },
       { key: 'cycle.name', label: 'Cycle' },
-      { key: 'weightage', label: 'Weight %' },
-      { key: 'progress', label: 'Progress %' },
+      { key: 'weightage', label: 'Weight %', align: 'right' },
+      { key: 'progress', label: 'Progress %', align: 'right' },
       { key: 'status', label: 'Status', badge: true },
     ],
     fields: [

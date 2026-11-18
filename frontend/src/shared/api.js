@@ -14,7 +14,9 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     // An expired or invalid session sends the user back to the login screen.
-    if (error.response?.status === 401 && !error.config?.url?.includes('/auth/login')) {
+    const requestToken = error.config?.headers?.Authorization
+    if (error.response?.status === 401 && error.config?.url !== '/auth/login'
+        && auth.token && requestToken === `Bearer ${auth.token}`) {
       clearSession()
       if (location.pathname !== '/login') {
         location.assign('/login')

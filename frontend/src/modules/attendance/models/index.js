@@ -10,7 +10,7 @@ export default [
       { key: 'status', label: 'Status', badge: true },
       { key: 'inTime', label: 'In' },
       { key: 'outTime', label: 'Out' },
-      { key: 'workingHours', label: 'Hours' },
+      { key: 'workingHours', label: 'Hours', align: 'right' },
       { key: 'remarks', label: 'Remarks' },
     ],
     fields: [
@@ -32,7 +32,7 @@ export default [
       { key: 'name', label: 'Name' },
       { key: 'startTime', label: 'Start' },
       { key: 'endTime', label: 'End' },
-      { key: 'graceMinutes', label: 'Grace (min)' },
+      { key: 'graceMinutes', label: 'Grace (min)', align: 'right' },
     ],
     fields: [
       { key: 'name', label: 'Name', type: 'text', required: true },

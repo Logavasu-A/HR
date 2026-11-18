@@ -7,42 +7,43 @@
 
 :root {
   /* Table Header */
-  --table-header-bg: var(--sidebar, #09090B);
-  --table-header-color: var(--bg, #FAFAFA);
-  --table-header-font-size: var(--text-xs, 12px);
-  --table-header-font-weight: var(--weight-semibold, 600);
-  --table-header-height: 44px;
-  --table-header-hover-bg: var(--sidebar-active, #18181B);
+  --table-header-bg: #09090B;
+  --table-header-color: #FAFAFA;
+  --table-header-font-size: 12px;
+  --table-header-font-weight: 600;
+  --table-header-height: 46px;
+  --table-header-hover-bg: #18181B;
 
   /* Table Body */
-  --table-body-bg: var(--panel, #FFFFFF);
-  --table-body-color: var(--text, #18181B);
+  --table-body-bg: #FFFFFF;
+  --table-body-color: #18181B;
   --table-body-font-size: 13.5px;
-  --table-body-font-weight: var(--weight-regular, 400);
-  --table-row-hover: var(--surface-hover, #F4F4F5);
-  --table-row-alternate: var(--bg, #FAFAFA);
+  --table-body-font-weight: 400;
+  --table-row-hover: #F4F4F5;
+  --table-row-alternate: #FAFAFA;
   --table-row-selected: rgba(99, 102, 241, 0.08);
-  --table-row-selected-accent: var(--primary, #6366F1);
+  --table-row-selected-accent: #6366F1;
 
   /* Borders & Elevation */
-  --table-border-color: var(--line, #E4E4E7);
-  --table-border-strong: var(--line-strong, #D4D4D8);
-  --table-border-radius: var(--radius, 12px);
-  --table-shadow: var(--shadow-sm, 0 1px 2px rgba(9, 9, 11, 0.04));
+  --table-border-color: #E4E4E7;
+  --table-border-strong: #D4D4D8;
+  --table-border-radius: 10px;
+  --table-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 
   /* Dimensions */
   --table-row-height: 48px;
-  --table-cell-padding: 12px 16px;
-  --table-compact-row-height: 42px;
+  --table-cell-inline-padding: 16px;
+  --table-cell-padding: 12px var(--table-cell-inline-padding);
+  --table-compact-row-height: 40px;
   --table-compact-cell-padding: 8px 12px;
 
   /* Scrolling */
-  --table-max-height: 540px;
+  --table-max-height: 520px;
   --table-inline-max-height: 260px;
   --table-scrollbar-size: 8px;
-  --table-scrollbar-track: var(--bg, #FAFAFA);
-  --table-scrollbar-thumb: var(--line-strong, #D4D4D8);
-  --table-scrollbar-thumb-hover: var(--placeholder, #A1A1AA);
+  --table-scrollbar-track: #FAFAFA;
+  --table-scrollbar-thumb: #D4D4D8;
+  --table-scrollbar-thumb-hover: #A1A1AA;
 }
 
 /* ---------- Outer Card Container (holds scroll viewport + pinned footer) ---------- */
@@ -53,18 +54,17 @@
   box-shadow: var(--table-shadow);
   overflow: hidden;
   width: 100%;
-  min-width: 0;
 }
 
 .table-card--inline {
-  margin-bottom: var(--space-2, 8px);
+  margin-bottom: 10px;
   box-shadow: none;
-  border-radius: var(--radius-sm, 8px);
 }
 
 /* ---------- Scroll Viewport (Vertical + Horizontal, Sticky Header Anchor) ---------- */
 .table-wrapper {
   position: relative;
+  container-type: inline-size;
   width: 100%;
   max-height: var(--table-max-height);
   overflow: auto;
@@ -137,7 +137,6 @@ table thead th,
   font-weight: var(--table-header-font-weight);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  text-align: left;
   white-space: nowrap;
   vertical-align: middle;
   border-bottom: 1px solid var(--table-border-color);
@@ -166,14 +165,15 @@ table thead th,
   gap: 6px;
 }
 
-.data-table thead th.num .th-inner {
-  justify-content: flex-end;
-  width: 100%;
+.num .sort-indicator {
+  order: -1;
 }
 
 .sort-indicator {
-  display: inline-flex;
-  align-items: center;
+  display: inline-grid;
+  place-items: center;
+  inline-size: 1.25em;
+  flex-shrink: 0;
   font-size: 10px;
   line-height: 1;
   opacity: 0.45;
@@ -219,7 +219,6 @@ table tbody td,
   border-bottom: 1px solid var(--table-border-color);
   vertical-align: middle;
   color: var(--table-body-color);
-  text-align: left;
 }
 
 table tbody tr:last-child td,
@@ -248,56 +247,38 @@ table tbody tr.total td,
   height: auto;
 }
 
-/* Alignment & utility classes (higher specificity than base th/td rules) */
-.table-wrapper thead th.num,
-table thead th.num,
-.data-table thead th.num,
-table tbody td.num,
-.data-table tbody td.num {
+/* Alignment & utility classes */
+:where(table th, table td) {
+  text-align: left;
+}
+
+:where(table td) {
+  overflow-wrap: anywhere;
+}
+
+th.num,
+td.num {
   text-align: right;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
-.table-wrapper thead th.center,
-table thead th.center,
-.data-table thead th.center,
-table tbody td.center,
-.data-table tbody td.center {
-  text-align: center;
-}
-
-.table-wrapper thead th.table-check-col,
-table thead th.table-check-col,
-.data-table thead th.table-check-col,
-table tbody td.table-check-col,
-.data-table tbody td.table-check-col {
+table :is(th, td).table-check-col {
   width: 44px;
   text-align: center;
-  padding-left: 12px;
-  padding-right: 12px;
+  padding-inline: 12px;
 }
 
-th.table-check-col input.check,
-td.table-check-col input.check {
-  display: inline-block;
-  vertical-align: middle;
+.table-check-col .check {
+  display: block;
+  margin: 0 auto;
 }
 
-.table-wrapper thead th.actions-col,
-table thead th.actions-col,
-.data-table thead th.actions-col,
-table tbody td.actions,
-.data-table tbody td.actions {
+th.actions-col,
+td.actions {
   text-align: right;
   white-space: nowrap;
-  width: 60px;
-  padding-left: 12px;
-  padding-right: 14px;
-}
-
-table.lines thead th.actions-col,
-table.lines tbody td.actions {
-  width: 1%;
+  width: 56px;
 }
 
 td.actions .btn {
@@ -317,6 +298,7 @@ table tbody tr:has(.action-menu-btn.open),
 .action-menu-wrap {
   display: inline-flex;
   justify-content: flex-end;
+  vertical-align: middle;
 }
 
 .action-menu-btn {
@@ -365,7 +347,10 @@ table tbody tr:has(.action-menu-btn.open),
 .action-menu-pop {
   position: fixed;
   z-index: 1000;
-  min-width: 176px;
+  min-inline-size: min(176px, calc(100vw - 20px));
+  max-inline-size: calc(100vw - 20px);
+  max-block-size: calc(100dvh - 20px);
+  overflow: auto;
   padding: 5px;
   background: rgba(255, 255, 255, 0.98);
   -webkit-backdrop-filter: blur(10px);
@@ -466,7 +451,8 @@ table tbody tr:has(.action-menu-btn.open),
 
 .action-menu-label {
   flex: 1;
-  white-space: nowrap;
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
 }
 
 .action-menu-item--default:hover,
@@ -517,9 +503,17 @@ table tbody tr:has(.action-menu-btn.open),
   color: var(--danger-text);
 }
 
-.empty {
-  text-align: center !important;
-  padding: 40px 16px !important;
+.data-table td.empty {
+  padding: 0;
+}
+
+.table-state-message {
+  /* Center the message within the scroll viewport even when columns extend beyond it. */
+  position: sticky;
+  inset-inline-start: 0;
+  max-inline-size: 100cqi;
+  padding: 40px 16px;
+  text-align: center;
   color: var(--muted);
 }
 
@@ -547,15 +541,17 @@ table.lines tbody td {
   padding: var(--table-compact-cell-padding);
 }
 
-table.lines tbody td input:not([type='checkbox']):not([type='radio']),
-table.lines tbody td select {
-  height: var(--control-height-sm, 32px);
-  padding: 0 10px;
-  font-size: var(--text-xs, 12px);
+table.lines td > :is(input:not(.check), select, textarea) {
+  min-inline-size: 7rem;
 }
 
-table.lines tbody td select {
-  padding-right: 28px;
+table.lines td > :is(input[type="date"], select) {
+  min-inline-size: 8rem;
+}
+
+table.lines input[type="number"] {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Pinned table footer (PaginationBar) */
@@ -567,13 +563,14 @@ table.lines tbody td select {
 /* ---------- Responsive Adjustments ---------- */
 @media (max-width: 1024px) {
   :root {
-    --table-cell-padding: 10px 14px;
+    --table-cell-inline-padding: 14px;
+    --table-cell-padding: 10px var(--table-cell-inline-padding);
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 800px) {
   :root {
-    --table-cell-padding: 10px 12px;
+    --table-cell-inline-padding: 12px;
     --table-max-height: 60vh;
   }
 }

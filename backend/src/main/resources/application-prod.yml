@@ -1,0 +1,22 @@
+# Production environment configuration
+server:
+  port: ${PORT:8080}
+  servlet:
+    session:
+      timeout: 20m
+      cookie:
+        http-only: true
+        secure: true
+        same-site: lax
+
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true

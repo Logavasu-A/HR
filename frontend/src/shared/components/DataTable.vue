@@ -182,14 +182,18 @@ function toggleRow(row, index) {
         </thead>
         <tbody>
           <tr v-if="loading" class="table-state-row">
-            <td :colspan="totalColumns" class="empty">{{ loadingText }}</td>
+            <td :colspan="totalColumns" class="empty">
+              <div class="table-state-message">{{ loadingText }}</div>
+            </td>
           </tr>
           <tr v-else-if="!sortedRows.length" class="table-state-row">
             <td :colspan="totalColumns" class="empty">
-              <slot name="empty">
-                <span v-if="emptyIcon" class="empty-icon">{{ emptyIcon }}</span>
-                {{ emptyText }}
-              </slot>
+              <div class="table-state-message">
+                <slot name="empty">
+                  <span v-if="emptyIcon" class="empty-icon">{{ emptyIcon }}</span>
+                  {{ emptyText }}
+                </slot>
+              </div>
             </td>
           </tr>
           <template v-else>

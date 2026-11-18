@@ -55,10 +55,11 @@ onMounted(load)
 </script>
 
 <template>
-  <div class="page">
-    <div class="page-head">
+  <div>
+    <div class="page-head period-heading">
       <h1>Attendance summary</h1>
-      <div class="page-head-actions">
+      <div class="spacer"></div>
+      <div class="period-filters">
         <select v-model="month" aria-label="Month">
           <option v-for="(m, i) in MONTHS" :key="m" :value="i + 1">{{ m }}</option>
         </select>

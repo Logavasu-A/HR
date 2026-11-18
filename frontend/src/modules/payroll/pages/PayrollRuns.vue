@@ -135,7 +135,7 @@ onMounted(() => guarded(loadRuns))
 </script>
 
 <template>
-  <div class="page">
+  <div>
     <div class="page-head"><h1>Payroll runs</h1></div>
     <p class="hint">
       Calculating creates draft salary slips for every active employee with a salary assignment.
@@ -154,7 +154,7 @@ onMounted(() => guarded(loadRuns))
         <label for="pr-year">Year</label>
         <input id="pr-year" v-model="year" type="number" min="2000" max="2100" />
       </div>
-      <button type="button" class="btn primary" :disabled="busy" @click="calculate">{{ busy ? 'Working…' : 'Calculate payroll' }}</button>
+      <button class="btn primary" :disabled="busy" @click="calculate">{{ busy ? 'Working…' : 'Calculate payroll' }}</button>
     </div>
 
     <div v-if="skipped.length" class="alert warn">

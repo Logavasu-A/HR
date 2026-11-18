@@ -23,7 +23,7 @@ export default [
     columns: [
       { key: 'name', label: 'Name' },
       { key: 'active', label: 'Active' },
-      { key: 'lines.length', label: 'Components' },
+      { key: 'lines.length', label: 'Components', align: 'right' },
     ],
     fields: [
       { key: 'name', label: 'Name', type: 'text', required: true },

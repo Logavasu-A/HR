@@ -1,8 +1,9 @@
 <script setup>
-import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import api from '@/shared/api'
 import { can } from '@/shared/auth'
 import { errorMessage, getPath, money, pretty } from '@/shared/utils'
+import AppDialog from './AppDialog.vue'
 import FieldInput from './FieldInput.vue'
 import DataTable from './DataTable.vue'
 import ActionMenu from './ActionMenu.vue'
@@ -18,6 +19,7 @@ const page = ref(0)
 const pageSize = ref(20)
 const totalElements = ref(0)
 const totalPages = ref(0)
+let latestLoad = 0
 
 const showForm = ref(false)
 const editingId = ref(null)
@@ -81,21 +83,24 @@ const filtered = computed(() => {
 })
 
 async function load() {
+  const request = ++latestLoad
   loading.value = true
   error.value = ''
   try {
     const { data } = await api.get(props.config.endpoint, {
       params: { page: page.value, size: pageSize.value },
     })
+    if (request !== latestLoad) return
     if (Array.isArray(data)) {
       rows.value = data
       totalElements.value = data.length
       totalPages.value = data.length ? 1 : 0
+      page.value = 0
     } else if (data && Array.isArray(data.content)) {
       rows.value = data.content
       totalElements.value = data.totalElements ?? data.content.length
       totalPages.value = data.totalPages ?? (data.content.length ? 1 : 0)
-      if (data.content.length === 0 && page.value > 0 && totalPages.value > 0) {
+      if (data.content.length === 0 && page.value > 0 && page.value >= totalPages.value) {
         page.value = Math.max(0, totalPages.value - 1)
         await load()
         return
@@ -106,9 +111,9 @@ async function load() {
       totalPages.value = 0
     }
   } catch (e) {
-    error.value = errorMessage(e)
+    if (request === latestLoad) error.value = errorMessage(e)
   } finally {
-    loading.value = false
+    if (request === latestLoad) loading.value = false
   }
 }
 
@@ -240,30 +245,16 @@ watch(
   },
 )
 
-function onKeydown(e) {
-  if (e.key === 'Escape' && showForm.value) {
-    showForm.value = false
-  }
-}
-
-onMounted(() => {
-  load()
-  document.addEventListener('keydown', onKeydown)
-})
-
-onUnmounted(() => {
-  document.removeEventListener('keydown', onKeydown)
-})
+onMounted(load)
 </script>
 
 <template>
-  <div class="page">
-    <div class="page-head">
+  <div>
+    <div class="page-head crud-heading">
       <h1>{{ config.title }}</h1>
-      <div class="page-head-actions">
-        <input v-model="search" class="search" type="search" placeholder="Search…" aria-label="Search records" />
-        <button v-if="canCreate" type="button" class="btn primary" @click="openForm(null)">New</button>
-      </div>
+      <div class="spacer"></div>
+      <input v-model="search" class="search" type="search" placeholder="Search this page" aria-label="Search this page" />
+      <button v-if="canCreate" class="btn primary" @click="openForm(null)">New</button>
     </div>
     <p v-if="config.hint" class="hint">{{ config.hint }}</p>
     <div v-if="error" class="alert">{{ error }}</div>
@@ -298,58 +289,62 @@ onUnmounted(() => {
       </template>
     </DataTable>
 
-    <div v-if="showForm" class="modal-backdrop" role="dialog" aria-modal="true" @click.self="showForm = false">
-      <form class="modal" @submit.prevent="save">
-        <div class="modal-head">
-          <h2>{{ editingId ? 'Edit' : 'New' }} · {{ config.title }}</h2>
-          <button type="button" class="modal-close" aria-label="Close modal" @click="showForm = false">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-        </div>
+    <AppDialog
+      v-if="showForm"
+      :title="`${editingId ? 'Edit' : 'New'} · ${config.title}`"
+      form
+      @dismiss="showForm = false"
+      @submit="save"
+    >
+      <div v-if="formError" class="alert">{{ formError }}</div>
 
-        <div class="modal-body">
-          <div v-if="formError" class="alert">{{ formError }}</div>
-
-          <div class="form-grid">
-            <template v-for="f in config.fields" :key="f.key">
-              <div v-if="f.type === 'lines'" class="field wide">
-                <label>{{ f.label }}</label>
-                <div class="table-card table-card--inline">
-                  <div class="table-wrapper table-wrapper--inline">
-                    <table class="data-table data-table--compact lines">
-                      <thead>
-                        <tr><th v-for="lf in f.fields" :key="lf.key">{{ lf.label }}</th><th class="actions-col"></th></tr>
-                      </thead>
-                      <tbody>
-                        <tr v-for="(line, i) in form[f.key]" :key="i">
-                          <td v-for="lf in f.fields" :key="lf.key">
-                            <FieldInput v-model="line[lf.key]" :field="lf" :options="refOptions[lf.endpoint] || []" />
-                          </td>
-                          <td class="actions"><button type="button" class="btn small danger" @click="form[f.key].splice(i, 1)">Remove</button></td>
-                        </tr>
-                        <tr v-if="!form[f.key].length" class="table-state-row"><td :colspan="f.fields.length + 1" class="empty">No rows.</td></tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-                <button type="button" class="btn small inline-add-row" @click="addLine(f)">Add row</button>
+      <div class="form-grid">
+        <template v-for="f in config.fields" :key="f.key">
+          <div v-if="f.type === 'lines'" class="field wide">
+            <label>{{ f.label }}</label>
+            <div class="table-card table-card--inline">
+              <div class="table-wrapper table-wrapper--inline" tabindex="0" role="region" :aria-label="f.label">
+                <table class="data-table data-table--compact lines">
+                  <thead>
+                    <tr>
+                      <th v-for="lf in f.fields" :key="lf.key" scope="col" :class="{ num: lf.type === 'number' }">
+                        {{ lf.label }}
+                      </th>
+                      <th scope="col" class="actions-col">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(line, i) in form[f.key]" :key="i">
+                      <td v-for="lf in f.fields" :key="lf.key">
+                        <FieldInput v-model="line[lf.key]" :field="lf" :options="refOptions[lf.endpoint] || []"
+                          :aria-label="`${lf.label}, row ${i + 1}`" />
+                      </td>
+                      <td class="actions"><button type="button" class="btn small danger" @click="form[f.key].splice(i, 1)">Remove</button></td>
+                    </tr>
+                    <tr v-if="!form[f.key].length" class="table-state-row">
+                      <td :colspan="f.fields.length + 1" class="empty">
+                        <div class="table-state-message">No rows.</div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
-              <div v-else class="field" :class="{ wide: f.type === 'textarea' || f.type === 'multicheck', inline: f.type === 'checkbox' }">
-                <label>{{ f.label }}<span v-if="f.required" class="req"> *</span></label>
-                <FieldInput v-model="form[f.key]" :field="f" :options="refOptions[f.endpoint] || []" />
-              </div>
-            </template>
+            </div>
+            <button type="button" class="btn small add-line" @click="addLine(f)">Add row</button>
           </div>
-        </div>
+          <div v-else class="field" :class="{ wide: f.type === 'textarea' || f.type === 'multicheck', inline: f.type === 'checkbox' }">
+            <label :for="f.type === 'multicheck' ? undefined : `crud-field-${f.key}`">
+              {{ f.label }}<span v-if="f.required" class="req" aria-hidden="true"> *</span>
+            </label>
+            <FieldInput :id="`crud-field-${f.key}`" v-model="form[f.key]" :field="f" :options="refOptions[f.endpoint] || []" />
+          </div>
+        </template>
+      </div>
 
-        <div class="modal-foot">
-          <button type="button" class="btn" @click="showForm = false">Cancel</button>
-          <button type="submit" class="btn primary" :disabled="saving">{{ saving ? 'Saving…' : 'Save' }}</button>
-        </div>
-      </form>
-    </div>
+      <template #footer>
+        <button type="button" class="btn" @click="showForm = false">Cancel</button>
+        <button type="submit" class="btn primary" :disabled="saving">{{ saving ? 'Saving…' : 'Save' }}</button>
+      </template>
+    </AppDialog>
   </div>
 </template>

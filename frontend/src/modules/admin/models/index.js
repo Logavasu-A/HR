@@ -24,7 +24,7 @@ export default [
     columns: [
       { key: 'name', label: 'Name' },
       { key: 'description', label: 'Description' },
-      { key: 'permissions.length', label: 'Permissions' },
+      { key: 'permissions.length', label: 'Permissions', align: 'right' },
     ],
     fields: [
       { key: 'name', label: 'Name', type: 'text', required: true },
@@ -41,7 +41,7 @@ export default [
       { key: 'username', label: 'User' },
       { key: 'action', label: 'Action', badge: true },
       { key: 'path', label: 'What' },
-      { key: 'status', label: 'Result' },
+      { key: 'status', label: 'Result', align: 'right' },
       { key: 'ip', label: 'From' },
     ],
     fields: [],
