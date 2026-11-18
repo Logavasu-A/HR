@@ -5,6 +5,7 @@ import { can } from '@/shared/auth'
 import { errorMessage, money, MONTHS, periodLabel, pretty } from '@/shared/utils'
 import SlipModal from '@/shared/components/SlipModal.vue'
 import DataTable from '@/shared/components/DataTable.vue'
+import ActionMenu from '@/shared/components/ActionMenu.vue'
 import PaginationBar from '@/shared/components/PaginationBar.vue'
 
 const runColumns = [
@@ -119,11 +120,22 @@ const remove = (run) => guarded(async () => {
   await loadRuns()
 })
 
+function runMenuItems(row) {
+  const items = [{ label: 'View slips', onClick: () => guarded(() => showSlips(row)) }]
+  if (row.status === 'DRAFT' && can('payroll:approve')) {
+    items.push({ label: 'Submit', onClick: () => submit(row) })
+  }
+  if (row.status === 'DRAFT' && can('payroll:write')) {
+    items.push({ label: 'Delete', danger: true, onClick: () => remove(row) })
+  }
+  return items
+}
+
 onMounted(() => guarded(loadRuns))
 </script>
 
 <template>
-  <div>
+  <div class="page">
     <div class="page-head"><h1>Payroll runs</h1></div>
     <p class="hint">
       Calculating creates draft salary slips for every active employee with a salary assignment.
@@ -142,7 +154,7 @@ onMounted(() => guarded(loadRuns))
         <label for="pr-year">Year</label>
         <input id="pr-year" v-model="year" type="number" min="2000" max="2100" />
       </div>
-      <button class="btn primary" :disabled="busy" @click="calculate">{{ busy ? 'Working…' : 'Calculate payroll' }}</button>
+      <button type="button" class="btn primary" :disabled="busy" @click="calculate">{{ busy ? 'Working…' : 'Calculate payroll' }}</button>
     </div>
 
     <div v-if="skipped.length" class="alert warn">
@@ -161,9 +173,7 @@ onMounted(() => guarded(loadRuns))
       <template #cell-status="{ row }"><span :class="`badge ${row.status.toLowerCase()}`">{{ pretty(row.status) }}</span></template>
       <template #cell-totalNet="{ row }">{{ money(row.totalNet) }}</template>
       <template #actions="{ row }">
-        <button class="btn small" @click="guarded(() => showSlips(row))">View slips</button>
-        <button v-if="row.status === 'DRAFT' && can('payroll:approve')" class="btn small" @click="submit(row)">Submit</button>
-        <button v-if="row.status === 'DRAFT' && can('payroll:write')" class="btn small danger" @click="remove(row)">Delete</button>
+        <ActionMenu :items="runMenuItems(row)" />
       </template>
       <template #footer>
         <PaginationBar
@@ -192,7 +202,7 @@ onMounted(() => guarded(loadRuns))
         <template #cell-totalDeduction="{ row }">{{ money(row.totalDeduction) }}</template>
         <template #cell-netPay="{ row }">{{ money(row.netPay) }}</template>
         <template #actions="{ row }">
-          <button class="btn small" @click="openSlip = row">View</button>
+          <ActionMenu :items="[{ label: 'View payslip', onClick: () => (openSlip = row) }]" />
         </template>
         <template #footer>
           <PaginationBar

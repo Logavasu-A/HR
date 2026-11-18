@@ -61,20 +61,28 @@ onMounted(load)
 </script>
 
 <template>
-  <div>
+  <div class="page">
     <div class="page-head">
       <h1>Notifications</h1>
-      <div class="spacer"></div>
-      <button class="btn" :disabled="!items.some((n) => !n.read)" @click="markAll">Mark all as read</button>
+      <div class="page-head-actions">
+        <button type="button" class="btn" :disabled="!items.some((n) => !n.read)" @click="markAll">Mark all as read</button>
+      </div>
     </div>
     <div v-if="error" class="alert">{{ error }}</div>
     <p v-if="loading" class="muted">Loading…</p>
-    <p v-else-if="!items.length" class="muted">Nothing here yet.</p>
+    <div v-else-if="!items.length" class="card pad muted">Nothing here yet.</div>
 
-    <div v-for="n in items" :key="n.id" class="card pad note" :class="{ unread: !n.read }" @click="markOne(n)">
-      <div class="note-title">{{ n.title }}</div>
-      <div>{{ n.message }}</div>
-      <div class="muted small-text">{{ n.createdAt.replace('T', ' ').slice(0, 16) }}</div>
+    <div v-else class="note-list">
+      <article v-for="n in items" :key="n.id" class="card note" :class="{ unread: !n.read }" @click="markOne(n)">
+        <div class="note-head">
+          <div class="note-title">
+            <span v-if="!n.read" class="note-dot" aria-hidden="true"></span>
+            <span>{{ n.title }}</span>
+          </div>
+          <time class="note-time">{{ n.createdAt.replace('T', ' ').slice(0, 16) }}</time>
+        </div>
+        <div class="note-body">{{ n.message }}</div>
+      </article>
     </div>
 
     <div v-if="!loading && totalElements > 0" class="card">

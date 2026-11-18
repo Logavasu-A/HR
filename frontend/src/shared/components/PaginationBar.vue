@@ -51,21 +51,23 @@ function onSizeChange(e) {
       <select class="page-size" :value="pageSize" :disabled="loading" aria-label="Rows per page" @change="onSizeChange">
         <option v-for="s in sizes" :key="s" :value="s">{{ s }} / page</option>
       </select>
-      <div class="page-buttons">
-        <button class="btn small page-btn" :disabled="loading || page <= 0" @click="go(page - 1)">Prev</button>
+      <div class="page-buttons" role="navigation" aria-label="Pagination">
+        <button type="button" class="btn small page-btn" :disabled="loading || page <= 0" @click="go(page - 1)">Prev</button>
         <template v-for="(p, idx) in pages" :key="`${p}-${idx}`">
-          <span v-if="p === '…'" class="page-ellipsis">…</span>
+          <span v-if="p === '…'" class="page-ellipsis" aria-hidden="true">…</span>
           <button
             v-else
+            type="button"
             class="btn small page-btn"
             :class="{ active: p === page }"
+            :aria-current="p === page ? 'page' : undefined"
             :disabled="loading"
             @click="go(p)"
           >
             {{ p + 1 }}
           </button>
         </template>
-        <button class="btn small page-btn" :disabled="loading || page >= totalPages - 1" @click="go(page + 1)">Next</button>
+        <button type="button" class="btn small page-btn" :disabled="loading || page >= totalPages - 1" @click="go(page + 1)">Next</button>
       </div>
     </div>
   </div>

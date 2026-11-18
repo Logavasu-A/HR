@@ -56,7 +56,7 @@ function toggle(option) {
   <div v-else-if="field.type === 'multicheck'" class="checks">
     <label v-for="o in options" :key="o">
       <input type="checkbox" :checked="Array.isArray(modelValue) && modelValue.includes(o)" @change="toggle(o)" />
-      {{ o }}
+      <span>{{ o }}</span>
     </label>
   </div>
 

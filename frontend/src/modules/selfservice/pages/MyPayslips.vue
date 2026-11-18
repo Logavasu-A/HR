@@ -4,6 +4,7 @@ import { listPayslips } from '../services/selfService'
 import { errorMessage, money, periodLabel } from '@/shared/utils'
 import SlipModal from '@/shared/components/SlipModal.vue'
 import DataTable from '@/shared/components/DataTable.vue'
+import ActionMenu from '@/shared/components/ActionMenu.vue'
 import PaginationBar from '@/shared/components/PaginationBar.vue'
 
 const columns = [
@@ -58,7 +59,7 @@ onMounted(load)
 </script>
 
 <template>
-  <div>
+  <div class="page">
     <div class="page-head"><h1>My payslips</h1></div>
     <div v-if="error" class="alert">{{ error }}</div>
     <DataTable
@@ -73,7 +74,7 @@ onMounted(load)
       <template #cell-totalDeduction="{ row }">{{ money(row.totalDeduction) }}</template>
       <template #cell-netPay="{ row }">{{ money(row.netPay) }}</template>
       <template #actions="{ row }">
-        <button class="btn small" @click="openSlip = row">View</button>
+        <ActionMenu :items="[{ label: 'View payslip', onClick: () => (openSlip = row) }]" />
       </template>
       <template #footer>
         <PaginationBar

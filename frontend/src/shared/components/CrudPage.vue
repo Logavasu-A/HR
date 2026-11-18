@@ -1,10 +1,11 @@
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import api from '@/shared/api'
 import { can } from '@/shared/auth'
 import { errorMessage, getPath, money, pretty } from '@/shared/utils'
 import FieldInput from './FieldInput.vue'
 import DataTable from './DataTable.vue'
+import ActionMenu from './ActionMenu.vue'
 import PaginationBar from './PaginationBar.vue'
 
 const props = defineProps({ config: { type: Object, required: true } })
@@ -35,6 +36,18 @@ const canRemove = computed(() => flag('remove'))
 const rowActions = (row) =>
   (props.config.actions || []).filter((a) => (!a.perm || can(a.perm)) && (!a.show || a.show(row)))
 const hasActionColumn = computed(() => canEdit.value || canRemove.value || (props.config.actions || []).length > 0)
+
+function menuItems(row) {
+  const items = rowActions(row).map((a) => ({
+    label: a.label,
+    danger: Boolean(a.danger),
+    onClick: () => runAction(a, row),
+  }))
+  if (canEdit.value) items.push({ label: 'Edit', onClick: () => openForm(row) })
+  if (canRemove.value) items.push({ label: 'Delete', danger: true, onClick: () => remove(row) })
+  // Keep non-destructive actions above destructive ones so the divider groups cleanly
+  return [...items.filter((i) => !i.danger), ...items.filter((i) => i.danger)]
+}
 
 // ---- table ----
 function cell(col, row) {
@@ -227,16 +240,30 @@ watch(
   },
 )
 
-onMounted(load)
+function onKeydown(e) {
+  if (e.key === 'Escape' && showForm.value) {
+    showForm.value = false
+  }
+}
+
+onMounted(() => {
+  load()
+  document.addEventListener('keydown', onKeydown)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', onKeydown)
+})
 </script>
 
 <template>
-  <div>
+  <div class="page">
     <div class="page-head">
       <h1>{{ config.title }}</h1>
-      <div class="spacer"></div>
-      <input v-model="search" class="search" type="search" placeholder="Search" />
-      <button v-if="canCreate" class="btn primary" @click="openForm(null)">New</button>
+      <div class="page-head-actions">
+        <input v-model="search" class="search" type="search" placeholder="Search…" aria-label="Search records" />
+        <button v-if="canCreate" type="button" class="btn primary" @click="openForm(null)">New</button>
+      </div>
     </div>
     <p v-if="config.hint" class="hint">{{ config.hint }}</p>
     <div v-if="error" class="alert">{{ error }}</div>
@@ -254,12 +281,7 @@ onMounted(load)
       :aria-label="config.title"
     >
       <template v-if="hasActionColumn" #actions="{ row }">
-        <button
-          v-for="a in rowActions(row)" :key="a.label"
-          class="btn small" :class="{ danger: a.danger }" @click="runAction(a, row)"
-        >{{ a.label }}</button>
-        <button v-if="canEdit" class="btn small" @click="openForm(row)">Edit</button>
-        <button v-if="canRemove" class="btn small danger" @click="remove(row)">Delete</button>
+        <ActionMenu :items="menuItems(row)" />
       </template>
       <template #footer>
         <PaginationBar
@@ -276,40 +298,51 @@ onMounted(load)
       </template>
     </DataTable>
 
-    <div v-if="showForm" class="modal-backdrop" @click.self="showForm = false">
+    <div v-if="showForm" class="modal-backdrop" role="dialog" aria-modal="true" @click.self="showForm = false">
       <form class="modal" @submit.prevent="save">
-        <h2>{{ editingId ? 'Edit' : 'New' }} · {{ config.title }}</h2>
-        <div v-if="formError" class="alert">{{ formError }}</div>
+        <div class="modal-head">
+          <h2>{{ editingId ? 'Edit' : 'New' }} · {{ config.title }}</h2>
+          <button type="button" class="modal-close" aria-label="Close modal" @click="showForm = false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
 
-        <div class="form-grid">
-          <template v-for="f in config.fields" :key="f.key">
-            <div v-if="f.type === 'lines'" class="field wide">
-              <label>{{ f.label }}</label>
-              <div class="table-card table-card--inline">
-                <div class="table-wrapper table-wrapper--inline">
-                  <table class="data-table data-table--compact lines">
-                    <thead>
-                      <tr><th v-for="lf in f.fields" :key="lf.key">{{ lf.label }}</th><th class="actions-col"></th></tr>
-                    </thead>
-                    <tbody>
-                      <tr v-for="(line, i) in form[f.key]" :key="i">
-                        <td v-for="lf in f.fields" :key="lf.key">
-                          <FieldInput v-model="line[lf.key]" :field="lf" :options="refOptions[lf.endpoint] || []" />
-                        </td>
-                        <td class="actions"><button type="button" class="btn small danger" @click="form[f.key].splice(i, 1)">Remove</button></td>
-                      </tr>
-                      <tr v-if="!form[f.key].length" class="table-state-row"><td :colspan="f.fields.length + 1" class="empty">No rows.</td></tr>
-                    </tbody>
-                  </table>
+        <div class="modal-body">
+          <div v-if="formError" class="alert">{{ formError }}</div>
+
+          <div class="form-grid">
+            <template v-for="f in config.fields" :key="f.key">
+              <div v-if="f.type === 'lines'" class="field wide">
+                <label>{{ f.label }}</label>
+                <div class="table-card table-card--inline">
+                  <div class="table-wrapper table-wrapper--inline">
+                    <table class="data-table data-table--compact lines">
+                      <thead>
+                        <tr><th v-for="lf in f.fields" :key="lf.key">{{ lf.label }}</th><th class="actions-col"></th></tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="(line, i) in form[f.key]" :key="i">
+                          <td v-for="lf in f.fields" :key="lf.key">
+                            <FieldInput v-model="line[lf.key]" :field="lf" :options="refOptions[lf.endpoint] || []" />
+                          </td>
+                          <td class="actions"><button type="button" class="btn small danger" @click="form[f.key].splice(i, 1)">Remove</button></td>
+                        </tr>
+                        <tr v-if="!form[f.key].length" class="table-state-row"><td :colspan="f.fields.length + 1" class="empty">No rows.</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
+                <button type="button" class="btn small inline-add-row" @click="addLine(f)">Add row</button>
               </div>
-              <button type="button" class="btn small" @click="addLine(f)">Add row</button>
-            </div>
-            <div v-else class="field" :class="{ wide: f.type === 'textarea' || f.type === 'multicheck', inline: f.type === 'checkbox' }">
-              <label>{{ f.label }}<span v-if="f.required" class="req"> *</span></label>
-              <FieldInput v-model="form[f.key]" :field="f" :options="refOptions[f.endpoint] || []" />
-            </div>
-          </template>
+              <div v-else class="field" :class="{ wide: f.type === 'textarea' || f.type === 'multicheck', inline: f.type === 'checkbox' }">
+                <label>{{ f.label }}<span v-if="f.required" class="req"> *</span></label>
+                <FieldInput v-model="form[f.key]" :field="f" :options="refOptions[f.endpoint] || []" />
+              </div>
+            </template>
+          </div>
         </div>
 
         <div class="modal-foot">
