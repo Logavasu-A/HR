@@ -6,6 +6,7 @@ import SignInLayout from '@/shared/components/SignInLayout.vue'
 const router = useRouter()
 const username = ref('')
 const password = ref('')
+const showPassword = ref(false)
 const error = ref('')
 const busy = ref(false)
 
@@ -26,6 +27,7 @@ async function signIn() {
     error.value = e.message
   } finally {
     password.value = ''
+    showPassword.value = false
     busy.value = false
   }
 }
@@ -45,7 +47,14 @@ async function signIn() {
       </div>
       <div class="field">
         <label for="owner-password">Password</label>
-        <input id="owner-password" v-model="password" type="password" autocomplete="current-password" maxlength="72" required />
+        <div class="owner-password">
+          <input id="owner-password" v-model="password" :type="showPassword ? 'text' : 'password'"
+            autocomplete="current-password" maxlength="72" required />
+          <button class="btn" type="button" aria-controls="owner-password" :disabled="busy"
+            :aria-label="showPassword ? 'Hide password' : 'Show password'" @click="showPassword = !showPassword">
+            {{ showPassword ? 'Hide' : 'Show' }}
+          </button>
+        </div>
       </div>
       <button class="btn primary block" :disabled="busy">{{ busy ? 'Signing in…' : 'Sign in' }}</button>
     </form>
@@ -54,3 +63,8 @@ async function signIn() {
     </template>
   </SignInLayout>
 </template>
+
+<style scoped>
+.owner-password { display: flex; gap: 8px; }
+.owner-password input { flex: 1; min-width: 0; }
+</style>

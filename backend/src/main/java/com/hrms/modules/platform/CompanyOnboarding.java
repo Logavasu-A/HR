@@ -22,12 +22,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
 import com.hrms.shared.common.ApiException;
+import com.hrms.shared.tenancy.TenantDatabaseScope;
 
 @Service
 @RequiredArgsConstructor
 public class CompanyOnboarding {
     private final JdbcTemplate jdbc;
     private final PasswordEncoder passwords;
+    private final TenantDatabaseScope tenantScope;
     private final SecureRandom random = new SecureRandom();
 
     public record CompanyDetails(@NotBlank @Size(max = 160) String name,
@@ -35,7 +37,7 @@ public class CompanyOnboarding {
                                  @NotBlank @Email @Size(max = 254) String contactEmail,
                                  @NotBlank @Size(max = 80) String timezone,
                                  @NotBlank @Pattern(regexp = "[A-Z]{3}") String currency) {}
-    public record Invitation(UUID id, String recipient, String secret) {}
+    public record Invitation(UUID id, UUID companyId, String recipient, String secret) {}
 
     @Transactional
     public Invitation create(CompanyDetails details, String adminEmail, String actor) {
@@ -45,6 +47,7 @@ public class CompanyOnboarding {
                 values (?, ?, ?, ?, ?) returning id
                 """, UUID.class, details.name().trim(), details.code(), details.contactEmail(),
                 details.timezone(), details.currency());
+        tenantScope.bind(companyId);
         Long roleId = jdbc.queryForObject("insert into role (name, tenant_id) values ('Company Admin', ?) returning id",
                 Long.class, companyId);
         jdbc.update("insert into role_permission (role_id, permission) values (?, '*')", roleId);
@@ -55,6 +58,7 @@ public class CompanyOnboarding {
     @Transactional
     public Invitation resend(UUID companyId, String actor) {
         if (!"PENDING".equals(lockCompany(companyId))) throw ApiException.badRequest("Company is not pending");
+        tenantScope.bind(companyId);
         String email = jdbc.query("""
                 select email from company_admin_invitation where tenant_id = ? order by created_at desc limit 1
                 """, (rs, row) -> rs.getString(1), companyId).stream().findFirst()
@@ -72,12 +76,13 @@ public class CompanyOnboarding {
                 values (?, ?, ?, current_timestamp + interval '48 hours') returning id
                 """, UUID.class, companyId, email, digest(secret));
         audit(actor, companyId, "ISSUE_ADMIN_INVITATION");
-        return new Invitation(id, email, secret);
+        return new Invitation(id, companyId, email, secret);
     }
 
     @Transactional
     public void revoke(UUID companyId, String actor) {
         if (!"PENDING".equals(lockCompany(companyId))) throw ApiException.badRequest("Company is not pending");
+        tenantScope.bind(companyId);
         revokeOutstanding(companyId);
         audit(actor, companyId, "REVOKE_ADMIN_INVITATION");
     }
@@ -95,10 +100,13 @@ public class CompanyOnboarding {
             throw ApiException.badRequest("Invalid invitation or password");
         }
         String hash = digest(secret);
-        UUID companyId = jdbc.query("select tenant_id from company_admin_invitation where secret_hash = ?",
-                (rs, row) -> rs.getObject(1, UUID.class), hash).stream().findFirst()
-                .orElseThrow(() -> ApiException.badRequest("Invitation is invalid or expired"));
+        UUID companyId = tenantScope.enabled()
+                ? jdbc.queryForObject("select hrms_rls.invitation_company(?)", UUID.class, hash)
+                : jdbc.query("select tenant_id from company_admin_invitation where secret_hash = ?",
+                        (rs, row) -> rs.getObject(1, UUID.class), hash).stream().findFirst().orElse(null);
+        if (companyId == null) throw ApiException.badRequest("Invitation is invalid or expired");
         if (!"PENDING".equals(lockCompany(companyId))) throw ApiException.badRequest("Invitation is no longer available");
+        tenantScope.bind(companyId);
         String email = jdbc.query("""
                 update company_admin_invitation set accepted_at = current_timestamp
                  where tenant_id = ? and secret_hash = ? and accepted_at is null and revoked_at is null
@@ -128,15 +136,21 @@ public class CompanyOnboarding {
     public void changeStatus(UUID companyId, boolean suspend, String actor) {
         String expected = suspend ? "ACTIVE" : "SUSPENDED";
         if (!expected.equals(lockCompany(companyId))) throw ApiException.badRequest("Company status cannot be changed");
+        tenantScope.bind(companyId);
         jdbc.update("update company set status = ? where id = ?", suspend ? "SUSPENDED" : "ACTIVE", companyId);
         audit(actor, companyId, suspend ? "SUSPEND_COMPANY" : "REACTIVATE_COMPANY");
     }
 
-    public void deliveryResult(UUID id, boolean delivered) {
-        jdbc.update("update company_admin_invitation set delivery_status = ? where id = ?", delivered ? "SENT" : "FAILED", id);
+    @Transactional
+    public void deliveryResult(Invitation invitation, boolean delivered) {
+        tenantScope.bind(invitation.companyId());
+        jdbc.update("update company_admin_invitation set delivery_status = ? where id = ? and tenant_id = ?",
+                delivered ? "SENT" : "FAILED", invitation.id(), invitation.companyId());
     }
 
+    @Transactional(readOnly = true)
     public Map<String, Object> details(UUID id) {
+        tenantScope.bind(id);
         return jdbc.queryForList("""
                 select c.*, i.email as admin_email, i.delivery_status,
                        case when i.accepted_at is not null then 'ACCEPTED'

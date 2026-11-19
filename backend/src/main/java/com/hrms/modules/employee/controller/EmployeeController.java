@@ -2,8 +2,17 @@ package com.hrms.modules.employee.controller;
 
 import com.hrms.modules.employee.model.Employee;
 import com.hrms.modules.employee.repository.EmployeeRepo;
+import com.hrms.modules.employee.service.EmployeeBankService;
 import com.hrms.modules.employee.service.EmployeeService;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
+import org.springframework.http.CacheControl;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -15,10 +24,26 @@ import com.hrms.shared.common.ApiException;
 public class EmployeeController extends CrudController<Employee> {
 
     private final EmployeeService service;
+    private final EmployeeBankService banking;
 
-    public EmployeeController(EmployeeRepo repo, EmployeeService service) {
+    public EmployeeController(EmployeeRepo repo, EmployeeService service, EmployeeBankService banking) {
         super(repo);
         this.service = service;
+        this.banking = banking;
+    }
+
+    @GetMapping("/{id}/bank-details")
+    public ResponseEntity<EmployeeBankService.Details> bankDetails(@PathVariable long id, HttpServletRequest request) {
+        var details = banking.read(id, request.getRequestURI(), request.getRemoteAddr());
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(details);
+    }
+
+    @PutMapping("/{id}/bank-details")
+    public ResponseEntity<Void> updateBankDetails(@PathVariable long id,
+                                                   @Valid @RequestBody EmployeeBankService.Details details,
+                                                   HttpServletRequest request) {
+        banking.update(id, details, request.getRequestURI(), request.getRemoteAddr());
+        return ResponseEntity.noContent().build();
     }
 
     @Override

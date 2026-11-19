@@ -34,6 +34,9 @@ import com.hrms.shared.common.ApiException;
 @RequestMapping("/api/platform")
 @ConditionalOnProperty(name = "app.platform.enabled", havingValue = "true")
 public class PlatformCompanies {
+    private static final int COMPANY_PAGE_SIZE = 20;
+    private static final int ACTIVITY_PAGE_SIZE = 10;
+
     private final CompanyOnboarding onboarding;
     private final JdbcTemplate jdbc;
     private final ObjectProvider<JavaMailSender> mail;
@@ -75,15 +78,51 @@ public class PlatformCompanies {
     @GetMapping("/companies")
     public Map<String, Object> companies(@RequestParam(defaultValue = "") String search,
                                          @RequestParam(defaultValue = "") String status,
+                                         @RequestParam(defaultValue = "newest") String sort,
                                          @RequestParam(defaultValue = "0") int page) {
         int index = Math.max(page, 0);
-        String condition = " where (? = '' or status = ?) and (strpos(lower(name), lower(?)) > 0 or strpos(lower(code), lower(?)) > 0)";
-        Long total = jdbc.queryForObject("select count(*) from company" + condition, Long.class, status, status, search, search);
+        String keyword = search.strip();
+        String order = switch (sort) {
+            case "newest" -> "created_at desc, id";
+            case "oldest" -> "created_at, id";
+            case "name-asc" -> "lower(name), id";
+            case "name-desc" -> "lower(name) desc, id";
+            default -> throw ApiException.badRequest("Choose a valid company sort order.");
+        };
+        String condition = """
+                 where (? = '' or status = ?) and (
+                     strpos(lower(name), lower(?)) > 0 or strpos(lower(code), lower(?)) > 0
+                     or strpos(lower(coalesce(contact_email, '')), lower(?)) > 0)
+                """;
+        Long total = jdbc.queryForObject("select count(*) from company" + condition, Long.class,
+                status, status, keyword, keyword, keyword);
         List<Map<String, Object>> records = jdbc.queryForList("""
-                select id, name, code, status, contact_email, created_at from company
-                """ + condition + " order by created_at desc, id limit 20 offset ?", status, status, search, search, index * 20L);
-        return Map.of("content", records, "page", index, "size", 20, "totalElements", total,
-                "totalPages", (total + 19) / 20, "first", index == 0, "last", (index + 1L) * 20 >= total);
+                select id, name, code, status, contact_email, created_at, timezone, currency from company
+                """ + condition + " order by " + order + " limit ? offset ?",
+                status, status, keyword, keyword, keyword, COMPANY_PAGE_SIZE, (long) index * COMPANY_PAGE_SIZE);
+        return page(records, index, COMPANY_PAGE_SIZE, total);
+    }
+
+    @GetMapping("/activity")
+    public Map<String, Object> activity(@RequestParam(defaultValue = "") String action,
+                                        @RequestParam(defaultValue = "0") int page) {
+        int index = Math.max(page, 0);
+        String condition = " where (? = '' or a.action = ?)";
+        Long total = jdbc.queryForObject("select count(*) from platform_audit_event a" + condition,
+                Long.class, action, action);
+        List<Map<String, Object>> events = jdbc.queryForList("""
+                select a.id, a.actor, a.action, a.occurred_at, a.tenant_id as company_id, c.name as company_name
+                  from platform_audit_event a left join company c on c.id = a.tenant_id
+                """ + condition + " order by a.id desc limit ? offset ?",
+                action, action, ACTIVITY_PAGE_SIZE, (long) index * ACTIVITY_PAGE_SIZE);
+        List<String> actions = jdbc.queryForList(
+                "select distinct action from platform_audit_event order by action", String.class);
+        return Map.of("events", page(events, index, ACTIVITY_PAGE_SIZE, total), "actions", actions);
+    }
+
+    private static Map<String, Object> page(List<Map<String, Object>> records, int index, int size, long total) {
+        return Map.of("content", records, "page", index, "size", size, "totalElements", total,
+                "totalPages", (total + size - 1) / size, "first", index == 0, "last", (index + 1L) * size >= total);
     }
 
     @GetMapping("/companies/{id}")
@@ -146,7 +185,7 @@ public class PlatformCompanies {
         } catch (RuntimeException ignored) {
             // Record the delivery failure without exposing recipient details or the invitation URL.
         }
-        onboarding.deliveryResult(invitation.id(), sent);
+        onboarding.deliveryResult(invitation, sent);
         return sent;
     }
 }

@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
 import com.hrms.shared.common.ApiException;
+import com.hrms.shared.tenancy.TenantDatabaseScope;
 
 @Service
 @RequiredArgsConstructor
@@ -22,6 +23,7 @@ public class CompanySessions {
     private static final UUID INITIAL_TENANT = UUID.fromString("00000000-0000-0000-0000-000000000001");
 
     private final JdbcTemplate jdbc;
+    private final TenantDatabaseScope tenantScope;
 
     @Value("${app.tenancy.allow-additional-companies:false}")
     private boolean allowAdditionalCompanies;
@@ -29,6 +31,12 @@ public class CompanySessions {
     public record Account(long userId, UUID tenantId) {}
 
     public Optional<Account> findAccount(String companyCode, String identifier) {
+        if (tenantScope.enabled()) {
+            List<Account> matches = jdbc.query("select user_id, tenant_id from hrms_rls.lookup_account(?, ?, ?)",
+                    (rs, row) -> new Account(rs.getLong(1), rs.getObject(2, UUID.class)),
+                    allowAdditionalCompanies, companyCode, identifier);
+            return matches.size() == 1 ? Optional.of(matches.getFirst()) : Optional.empty();
+        }
         List<Account> matches = jdbc.query("""
                 select u.id, u.tenant_id
                   from app_user u join company c on c.id = u.tenant_id
@@ -42,7 +50,12 @@ public class CompanySessions {
     }
 
     public void create(UUID sessionId, Account account, Instant expiresAt) {
-        jdbc.update("delete from company_session where expires_at <= current_timestamp");
+        if (tenantScope.enabled()) {
+            jdbc.update("delete from company_session where tenant_id = ? and expires_at <= current_timestamp",
+                    account.tenantId());
+        } else {
+            jdbc.update("delete from company_session where expires_at <= current_timestamp");
+        }
         int inserted = jdbc.update("""
                 insert into company_session (id, tenant_id, user_id, expires_at)
                 select ?, c.id, ?, ? from company c where c.id = ? and c.status = 'ACTIVE' for share
@@ -52,6 +65,10 @@ public class CompanySessions {
 
     public boolean isActive(JwtService.CompanyToken token) {
         if (!allowAdditionalCompanies && !INITIAL_TENANT.equals(token.tenantId())) return false;
+        if (tenantScope.enabled()) {
+            return Boolean.TRUE.equals(jdbc.queryForObject("select hrms_rls.session_active(?, ?, ?)",
+                    Boolean.class, token.sessionId(), token.tenantId(), token.userId()));
+        }
         return Boolean.TRUE.equals(jdbc.queryForObject("""
                 select exists (
                     select 1 from company_session s join company c on c.id = s.tenant_id

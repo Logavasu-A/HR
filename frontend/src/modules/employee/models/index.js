@@ -1,4 +1,5 @@
 import { opts, nameAndDescription } from '@/shared/modelHelpers'
+import { auth } from '@/shared/auth'
 
 export default [
   {
@@ -10,6 +11,13 @@ export default [
       { key: 'designation.name', label: 'Designation' },
       { key: 'dateOfJoining', label: 'Joined' },
       { key: 'status', label: 'Status', badge: true },
+    ],
+    actions: [
+      {
+        label: 'Bank details',
+        route: (row) => ({ name: 'employee-bank-details', params: { id: row.id } }),
+        show: () => auth.user?.permissions?.includes('employee-bank:read') === true,
+      },
     ],
     fields: [
       { key: 'employeeCode', label: 'Employee code (blank = automatic)', type: 'text' },
@@ -29,8 +37,6 @@ export default [
       { key: 'reportsTo', label: 'Reports to', type: 'ref', endpoint: '/core/employees' },
       { key: 'holidayList', label: 'Holiday list (blank = default)', type: 'ref', endpoint: '/leave/holiday-lists' },
       { key: 'address', label: 'Address', type: 'textarea' },
-      { key: 'bankName', label: 'Bank name', type: 'text' },
-      { key: 'bankAccountNo', label: 'Bank account number', type: 'text' },
     ],
   },
   {

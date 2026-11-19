@@ -1,5 +1,7 @@
 package com.hrms.modules.audit.interceptor;
 
+import java.util.UUID;
+
 import com.hrms.modules.audit.model.AuditLog;
 import com.hrms.modules.audit.repository.AuditLogRepo;
 
@@ -9,6 +11,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 import com.hrms.shared.security.CurrentUser;
+import com.hrms.shared.tenancy.TenantDatabaseScope;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -20,8 +23,10 @@ import lombok.RequiredArgsConstructor;
 public class AuditInterceptor implements HandlerInterceptor {
 
     private static final Logger log = LoggerFactory.getLogger(AuditInterceptor.class);
+    private static final String REJECTED_OPERATION = AuditInterceptor.class.getName() + ".rejectedOperation";
 
     private final AuditLogRepo auditLogs;
+    private final TenantDatabaseScope tenantScope;
 
     @Override
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler,
@@ -31,11 +36,27 @@ public class AuditInterceptor implements HandlerInterceptor {
         if ("GET".equals(method) || "OPTIONS".equals(method)) {
             return;
         }
+        var entry = AuditLog.of(CurrentUser.usernameOrSystem(), actionOf(method, path), method, path,
+                response.getStatus(), request.getRemoteAddr());
+        if (tenantScope.enabled() && response.getStatus() >= 400) {
+            request.setAttribute(REJECTED_OPERATION, entry);
+            return;
+        }
         try {
-            auditLogs.save(AuditLog.of(CurrentUser.usernameOrSystem(), actionOf(method, path), method, path,
-                    response.getStatus(), request.getRemoteAddr()));
+            auditLogs.save(entry);
         } catch (RuntimeException e) {
             log.warn("Could not write audit log for {} {}", method, path, e);
+        }
+    }
+
+    /** Saves a rejected operation after the request transaction has rolled back. */
+    public void flushRejected(HttpServletRequest request, UUID tenant) {
+        if (!(request.getAttribute(REJECTED_OPERATION) instanceof AuditLog entry)) return;
+        request.removeAttribute(REJECTED_OPERATION);
+        try {
+            tenantScope.transaction(tenant, status -> auditLogs.save(entry));
+        } catch (RuntimeException e) {
+            log.warn("Could not write audit log for {} {}", request.getMethod(), request.getRequestURI(), e);
         }
     }
 

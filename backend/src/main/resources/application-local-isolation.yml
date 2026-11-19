@@ -1,0 +1,29 @@
+# The original local database uses the default profile. This profile is for the verified restore.
+server:
+  address: 127.0.0.1
+  port: 8081
+
+spring:
+  datasource:
+    url: jdbc:postgresql://127.0.0.1:5432/hrms_isolation_20261119
+    username: hrms_isolation_app
+    password: ${HRMS_ISOLATION_RUNTIME_PASSWORD}
+  flyway:
+    enabled: false
+  jpa:
+    open-in-view: false
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.mail.MailSenderAutoConfiguration
+
+app:
+  cors:
+    allowed-origins: http://127.0.0.1:5174
+  tenancy:
+    allow-additional-companies: true
+    rls:
+      enabled: true
+      key: ${HRMS_ISOLATION_RLS_KEY}
+  platform:
+    bootstrap-password-file: ""
+  mail:
+    enabled: false

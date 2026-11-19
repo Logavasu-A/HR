@@ -1,5 +1,6 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import api from '@/shared/api'
 import { can } from '@/shared/auth'
 import { errorMessage, getPath, money, pretty } from '@/shared/utils'
@@ -10,6 +11,7 @@ import ActionMenu from './ActionMenu.vue'
 import PaginationBar from './PaginationBar.vue'
 
 const props = defineProps({ config: { type: Object, required: true } })
+const router = useRouter()
 
 const rows = ref([])
 const loading = ref(true)
@@ -215,6 +217,7 @@ async function remove(row) {
 }
 
 async function runAction(action, row) {
+  if (action.route) return router.push(action.route(row))
   if (action.confirm && !window.confirm(action.confirm)) return
   let body = {}
   if (action.ask) {

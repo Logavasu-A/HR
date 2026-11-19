@@ -11,9 +11,9 @@ export default defineConfig({
   },
   server: {
     port: 5173,
-    // The backend runs on port 8080; /api calls are forwarded to it during development.
+    // The isolation frontend can use the separate loopback backend without changing the default proxy.
     proxy: {
-      '/api': 'http://localhost:8080',
+      '/api': process.env.HRMS_ISOLATION_FRONTEND === '1' ? 'http://127.0.0.1:8081' : 'http://localhost:8080',
     },
   },
 })

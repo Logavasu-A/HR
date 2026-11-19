@@ -6,6 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -45,7 +46,9 @@ public abstract class CrudController<T extends BaseEntity> {
     @PostMapping
     public T create(@Valid @RequestBody T body) {
         body.setId(null);
-        return doCreate(body);
+        T saved = doCreate(body);
+        flushMutation();
+        return saved;
     }
 
     @PutMapping("/{id}")
@@ -54,12 +57,23 @@ public abstract class CrudController<T extends BaseEntity> {
         body.setId(id);
         body.setCreatedAt(existing.getCreatedAt());
         body.setCreatedBy(existing.getCreatedBy());
-        return doUpdate(existing, body);
+        T saved = doUpdate(existing, body);
+        flushMutation();
+        return saved;
     }
 
     @DeleteMapping("/{id}")
     public void delete(@PathVariable Long id) {
         doDelete(load(id));
+        flushMutation();
+    }
+
+    private void flushMutation() {
+        // Tenant RLS can keep a transaction open through response serialization.
+        // Surface database constraints while MVC can still map the failure.
+        if (TransactionSynchronizationManager.isActualTransactionActive()) {
+            repo.flush();
+        }
     }
 
     protected T load(Long id) {

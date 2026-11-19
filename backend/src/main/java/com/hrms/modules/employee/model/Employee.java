@@ -79,7 +79,7 @@ public class Employee extends BaseEntity {
     @ManyToOne
     @JoinColumn(name = "reports_to_id")
     @JsonIgnoreProperties({"reportsTo", "holidayList", "department", "designation", "branch",
-            "address", "bankName", "bankAccountNo", "dateOfBirth", "gender", "phone"})
+            "address", "dateOfBirth", "gender", "phone"})
     private Employee reportsTo;
 
     @ManyToOne
@@ -88,8 +88,6 @@ public class Employee extends BaseEntity {
     private HolidayList holidayList;
 
     private String address;
-    private String bankName;
-    private String bankAccountNo;
 
     public String getFullName() {
         String first = firstName == null ? "" : firstName;

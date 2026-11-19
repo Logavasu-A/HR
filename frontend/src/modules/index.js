@@ -29,4 +29,4 @@ export const resources = [employee, leave, attendance, payroll, recruitment, exp
   (m) => m.resources,
 )
 export const selfResources = selfservice.selfResources
-export const featureRoutes = [auth, dashboard, payroll, attendance, selfservice, notifications].flatMap((m) => m.routes)
+export const featureRoutes = [auth, dashboard, employee, payroll, attendance, selfservice, notifications].flatMap((m) => m.routes)

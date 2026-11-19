@@ -18,6 +18,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import com.hrms.shared.tenancy.TenantDatabaseScope;
+import com.hrms.modules.audit.interceptor.AuditInterceptor;
 
 import com.hrms.modules.admin.repository.UserRepo;
 
@@ -27,7 +29,8 @@ public class SecurityConfig {
     @Bean
     @Order(2)
     public SecurityFilterChain filterChain(HttpSecurity http, JwtService jwt, UserRepo users,
-                                           PermissionManager permissionManager, CompanySessions sessions) throws Exception {
+                                           PermissionManager permissionManager, CompanySessions sessions,
+                                           TenantDatabaseScope tenantScope, AuditInterceptor audit) throws Exception {
         http
                 .csrf(c -> c.disable())
                 .cors(Customizer.withDefaults())
@@ -38,7 +41,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/**").access(permissionManager)
                         .anyRequest().permitAll())
                 .exceptionHandling(e -> e.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
-                .addFilterBefore(new JwtFilter(jwt, users, sessions), UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(new JwtFilter(jwt, users, sessions, tenantScope, audit), UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 

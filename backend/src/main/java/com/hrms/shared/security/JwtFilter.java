@@ -8,10 +8,13 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.util.ContentCachingResponseWrapper;
 
 import com.hrms.modules.admin.model.AppUser;
 import com.hrms.modules.admin.repository.UserRepo;
+import com.hrms.modules.audit.interceptor.AuditInterceptor;
 import com.hrms.shared.tenancy.CompanyTenancy;
+import com.hrms.shared.tenancy.TenantDatabaseScope;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -24,31 +27,81 @@ public class JwtFilter extends OncePerRequestFilter {
     private final JwtService jwt;
     private final UserRepo users;
     private final CompanySessions sessions;
+    private final TenantDatabaseScope tenantScope;
+    private final AuditInterceptor audit;
 
-    public JwtFilter(JwtService jwt, UserRepo users, CompanySessions sessions) {
+    public JwtFilter(JwtService jwt, UserRepo users, CompanySessions sessions, TenantDatabaseScope tenantScope,
+                     AuditInterceptor audit) {
         this.jwt = jwt;
         this.users = users;
         this.sessions = sessions;
+        this.tenantScope = tenantScope;
+        this.audit = audit;
+    }
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        return switch (request.getServletPath()) {
+            case "/api/auth/login", "/api/auth/accept-admin-invite" -> true;
+            default -> false;
+        };
     }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
         String header = request.getHeader("Authorization");
-        if (!"/api/auth/login".equals(request.getServletPath()) && header != null && header.startsWith("Bearer ")) {
+        if (header != null && header.startsWith("Bearer ")) {
             JwtService.CompanyToken token = jwt.parseCompanyToken(header.substring(7));
             if (token != null && sessions.isActive(token)) {
-                CompanyTenancy.attach(token.tenantId());
-                try {
-                    users.findById(token.userId()).filter(AppUser::isActive).ifPresent(user -> signIn(user, token));
-                    chain.doFilter(request, response);
-                } finally {
-                    CompanyTenancy.clear();
+                if (tenantScope.enabled()) {
+                    inDatabaseScope(request, response, chain, token);
+                } else {
+                    CompanyTenancy.attach(token.tenantId());
+                    try {
+                        authenticated(request, response, chain, token);
+                    } finally {
+                        CompanyTenancy.clear();
+                    }
                 }
                 return;
             }
         }
         chain.doFilter(request, response);
+    }
+
+    private void inDatabaseScope(HttpServletRequest request, HttpServletResponse response, FilterChain chain,
+                                 JwtService.CompanyToken token) throws IOException, ServletException {
+        var buffered = new ContentCachingResponseWrapper(response);
+        try {
+            tenantScope.transaction(token.tenantId(), status -> {
+                try {
+                    authenticated(request, buffered, chain, token);
+                } catch (IOException | ServletException e) {
+                    throw new RequestFailure(e);
+                }
+                if (buffered.getStatus() >= 400) status.setRollbackOnly();
+                return null;
+            });
+        } catch (RequestFailure failure) {
+            if (failure.getCause() instanceof IOException io) throw io;
+            throw (ServletException) failure.getCause();
+        } finally {
+            audit.flushRejected(request, token.tenantId());
+        }
+        buffered.copyBodyToResponse();
+    }
+
+    private void authenticated(HttpServletRequest request, HttpServletResponse response, FilterChain chain,
+                               JwtService.CompanyToken token) throws IOException, ServletException {
+        users.findById(token.userId()).filter(AppUser::isActive).ifPresent(user -> signIn(user, token));
+        chain.doFilter(request, response);
+    }
+
+    private static class RequestFailure extends RuntimeException {
+        RequestFailure(Exception cause) {
+            super(cause);
+        }
     }
 
     private void signIn(AppUser u, JwtService.CompanyToken token) {
