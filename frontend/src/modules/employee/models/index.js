@@ -1,5 +1,4 @@
 import { opts, nameAndDescription } from '@/shared/modelHelpers'
-import { auth } from '@/shared/auth'
 
 export default [
   {
@@ -15,8 +14,8 @@ export default [
     actions: [
       {
         label: 'Bank details',
-        route: (row) => ({ name: 'employee-bank-details', params: { id: row.id } }),
-        show: () => auth.user?.permissions?.includes('employee-bank:read') === true,
+        route: (row, workspace) => workspace.path(`/employees/${row.id}/bank-details`),
+        show: (_row, workspace) => workspace.explicit('employee-bank:read'),
       },
     ],
     fields: [

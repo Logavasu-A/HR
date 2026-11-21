@@ -1,13 +1,31 @@
-# build output
-backend/target/
-frontend/dist/
+# Build output and tooling caches
+/backend/target/
+/frontend/dist/
+/frontend/.vite/
 
-# dependencies
-frontend/node_modules/
+# Installed dependencies
+/frontend/node_modules/
 
-# local secrets
-backend/application-local.properties
+# Local configuration and secrets
+/backend/application-local.properties
+/backend/.local/*
+!/backend/.local/.gitkeep
+.env
+.env.*
+!.env.example
+!.env.template
+*.secret
 
-# misc
+# Logs and test output
 *.log
+/frontend/coverage/
+/frontend/playwright-report/
+/frontend/test-results/
+
+# Local database exports
+*.dump
+*.backup
+*.sql.gz
+
+# Local assistant settings
 .claude/

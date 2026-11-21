@@ -1,13 +1,14 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import * as payroll from '../services/payrollService'
-import { can } from '@/shared/auth'
+import { useWorkspace } from '@/shared/workspaceContext'
 import { errorMessage, money, MONTHS, periodLabel, pretty } from '@/shared/utils'
 import SlipModal from '@/shared/components/SlipModal.vue'
 import DataTable from '@/shared/components/DataTable.vue'
 import ActionMenu from '@/shared/components/ActionMenu.vue'
 import PaginationBar from '@/shared/components/PaginationBar.vue'
 
+const { api, can } = useWorkspace()
 const runColumns = [
   { key: 'periodYear', label: 'Period', nowrap: true },
   { key: 'status', label: 'Status', badge: true },
@@ -47,7 +48,7 @@ const error = ref('')
 const busy = ref(false)
 
 async function loadRuns() {
-  const data = await payroll.listRuns(runsPage.value, runsSize.value)
+  const data = await payroll.listRuns(runsPage.value, runsSize.value, api)
   if (Array.isArray(data)) {
     runs.value = data
     runsTotal.value = data.length
@@ -61,7 +62,7 @@ async function loadRuns() {
 
 async function loadSlips(run) {
   if (!run) return
-  const data = await payroll.listSlips(run.id, slipsPage.value, slipsSize.value)
+  const data = await payroll.listSlips(run.id, slipsPage.value, slipsSize.value, api)
   if (Array.isArray(data)) {
     slips.value = data
     slipsTotal.value = data.length
@@ -97,7 +98,7 @@ async function guarded(fn) {
 }
 
 const calculate = () => guarded(async () => {
-  const data = await payroll.createRun(Number(year.value), Number(month.value))
+  const data = await payroll.createRun(Number(year.value), Number(month.value), api)
   skipped.value = data.skipped || []
   await loadRuns()
   await showSlips(data)
@@ -105,14 +106,14 @@ const calculate = () => guarded(async () => {
 
 const submit = (run) => guarded(async () => {
   if (!window.confirm(`Submit payroll for ${periodLabel(run.periodYear, run.periodMonth)}? Slips become final and employees are notified.`)) return
-  await payroll.submitRun(run.id)
+  await payroll.submitRun(run.id, api)
   await loadRuns()
   if (selected.value?.id === run.id) await showSlips(runs.value.find((r) => r.id === run.id))
 })
 
 const remove = (run) => guarded(async () => {
   if (!window.confirm('Delete this draft payroll run and its slips?')) return
-  await payroll.deleteRun(run.id)
+  await payroll.deleteRun(run.id, api)
   if (selected.value?.id === run.id) {
     selected.value = null
     slips.value = []
@@ -137,10 +138,6 @@ onMounted(() => guarded(loadRuns))
 <template>
   <div>
     <div class="page-head"><h1>Payroll runs</h1></div>
-    <p class="hint">
-      Calculating creates draft salary slips for every active employee with a salary assignment.
-      You can recalculate a month as often as needed until it is submitted.
-    </p>
     <div v-if="error" class="alert">{{ error }}</div>
 
     <div v-if="can('payroll:write')" class="card pad toolbar">
@@ -154,7 +151,12 @@ onMounted(() => guarded(loadRuns))
         <label for="pr-year">Year</label>
         <input id="pr-year" v-model="year" type="number" min="2000" max="2100" />
       </div>
-      <button class="btn primary" :disabled="busy" @click="calculate">{{ busy ? 'Working…' : 'Calculate payroll' }}</button>
+      <button class="btn primary" :disabled="busy" aria-describedby="payroll-calculate-note"
+        @click="calculate">{{ busy ? 'Working…' : 'Calculate payroll' }}</button>
+      <small id="payroll-calculate-note" class="control-note payroll-calculate-note">
+        Calculating creates draft salary slips for every active employee with a salary assignment.
+        You can recalculate a month as often as needed until it is submitted.
+      </small>
     </div>
 
     <div v-if="skipped.length" class="alert warn">
@@ -222,3 +224,10 @@ onMounted(() => guarded(loadRuns))
     <SlipModal v-if="openSlip" :slip="openSlip" @close="openSlip = null" />
   </div>
 </template>
+
+<style scoped>
+.payroll-calculate-note { grid-column: 3; max-width: 55ch; }
+@media (max-width: 560px) {
+  .payroll-calculate-note { grid-column: 1 / -1; }
+}
+</style>

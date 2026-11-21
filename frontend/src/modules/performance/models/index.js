@@ -3,7 +3,6 @@ import { opts, employeeField } from '@/shared/modelHelpers'
 export default [
   {
     path: '/appraisals', group: 'Performance', title: 'Appraisals', perm: 'performance', endpoint: '/performance/appraisals',
-    hint: 'Final score = 70% manager rating + 30% goal achievement in the cycle.',
     columns: [
       { key: 'employee.fullName', label: 'Employee' },
       { key: 'cycle.name', label: 'Cycle' },
@@ -16,7 +15,10 @@ export default [
       employeeField,
       { key: 'cycle', label: 'Appraisal cycle', type: 'ref', endpoint: '/performance/cycles', required: true },
       { key: 'selfRating', label: 'Self rating (1-5)', type: 'number' },
-      { key: 'managerRating', label: 'Manager rating (1-5)', type: 'number' },
+      {
+        key: 'managerRating', label: 'Manager rating (1-5)', type: 'number',
+        help: 'Final score = 70% manager rating + 30% goal achievement in the cycle.',
+      },
       { key: 'feedback', label: 'Feedback', type: 'textarea' },
     ],
     actions: [

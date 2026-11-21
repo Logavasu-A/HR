@@ -4,10 +4,13 @@ import com.hrms.modules.auth.model.ChangePasswordRequest;
 import com.hrms.modules.auth.model.LoginRequest;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Consumer;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -23,6 +26,7 @@ import com.hrms.modules.admin.repository.UserRepo;
 import com.hrms.shared.security.JwtService;
 import com.hrms.shared.security.CurrentUser;
 import com.hrms.shared.security.CompanySessions;
+import com.hrms.shared.security.CompanyRecordScope;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.persistence.EntityManagerFactory;
@@ -43,17 +47,21 @@ public class AuthController {
     private final CompanySessions sessions;
     private final TenantDatabaseScope tenantScope;
     private final AuditLogRepo audit;
+    private final JdbcTemplate jdbc;
+
+    public record SwitchCompanyRequest(UUID companyId, String companyCode) {}
 
     @PostMapping("/login")
     public Map<String, Object> login(@RequestBody LoginRequest req, HttpServletRequest http) {
         String username = req.username() == null ? "" : req.username().trim();
-        String companyCode = req.companyCode() == null ? "initial" : req.companyCode().trim();
+        String companyCode = (req.companyCode() == null || req.companyCode().trim().isEmpty()) ? "initial" : req.companyCode().trim();
         var account = sessions.findAccount(companyCode, username).orElse(null);
         if (account == null) throw invalidLogin();
 
         if (tenantScope.enabled()) {
             Map<String, Object> result = tenantScope.transaction(account.tenantId(), status -> {
                 Map<String, Object> user = verify(users.findById(account.userId()).orElse(null), req, http, audit::save);
+                if (user != null) enrichCompany(user, account.tenantId());
                 return user == null ? null : Map.of("token", jwt.create(account), "user", user);
             });
             if (result == null) throw invalidLogin();
@@ -70,7 +78,24 @@ public class AuthController {
             CompanyTenancy.clear();
         }
         if (info == null) throw invalidLogin();
-        return Map.of("token", jwt.create(account), "user", info);
+        enrichCompany(info, account.tenantId());
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("token", jwt.create(account));
+        response.put("user", info);
+        return response;
+    }
+
+    private void enrichCompany(Map<String, Object> userMap, UUID tenantId) {
+        if (tenantId == null) return;
+        userMap.put("companyId", tenantId);
+        try {
+            List<Map<String, Object>> rows = jdbc.queryForList(
+                    "select name, code from company where id = ?", tenantId);
+            if (!rows.isEmpty()) {
+                userMap.put("companyName", rows.getFirst().get("name"));
+                userMap.put("companyCode", rows.getFirst().get("code"));
+            }
+        } catch (Exception ignored) {}
     }
 
     private Map<String, Object> verify(AppUser user, LoginRequest request, HttpServletRequest http,
@@ -94,8 +119,11 @@ public class AuthController {
 
     @GetMapping("/me")
     public Map<String, Object> me() {
-        return userInfo(users.findById(CurrentUser.get().id())
-                .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Not signed in")));
+        AppUser u = users.findById(CurrentUser.get().id())
+                .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Not signed in"));
+        Map<String, Object> info = userInfo(u);
+        enrichCompany(info, CurrentUser.tenantId());
+        return info;
     }
 
     @PostMapping("/change-password")
@@ -112,13 +140,15 @@ public class AuthController {
         users.save(user);
     }
 
-    private static Map<String, Object> userInfo(AppUser u) {
+    public static Map<String, Object> userInfo(AppUser u) {
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("id", u.getId());
         map.put("username", u.getUsername());
         map.put("email", u.getEmail());
         map.put("role", u.getRole().getName());
-        map.put("permissions", u.getRole().getPermissions());
+        var scope = CompanyRecordScope.of(u.getRole().getPermissions());
+        map.put("recordScope", scope.name());
+        map.put("permissions", scope.displayPermissions(u.getRole().getPermissions()));
         if (u.getEmployee() != null) {
             map.put("employeeId", u.getEmployee().getId());
             map.put("employeeName", u.getEmployee().getFullName());

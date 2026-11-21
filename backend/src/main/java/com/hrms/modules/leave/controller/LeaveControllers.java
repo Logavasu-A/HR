@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.hrms.shared.common.CrudController;
+import com.hrms.shared.common.CrudResourceController;
 import com.hrms.shared.common.ChildRecordIds;
 import com.hrms.shared.common.ApprovalStatus;
 import com.hrms.shared.common.ApiException;
@@ -88,7 +89,7 @@ public class LeaveControllers {
 
     @RestController
     @RequestMapping("/api/leave/applications")
-    public static class Applications extends CrudController<LeaveApplication> {
+    public static class Applications extends CrudResourceController<LeaveApplication> {
 
         private final LeaveService service;
 
@@ -103,11 +104,6 @@ public class LeaveControllers {
                 throw ApiException.badRequest("Choose an employee");
             }
             return service.apply(body.getEmployee().getId(), body);
-        }
-
-        @Override
-        protected LeaveApplication doUpdate(LeaveApplication existing, LeaveApplication body) {
-            throw ApiException.badRequest("Leave applications cannot be edited. Cancel it and apply again.");
         }
 
         @Override

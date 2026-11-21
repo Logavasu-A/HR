@@ -9,11 +9,15 @@ if ([string]::IsNullOrEmpty($fixturePassword)) {
 $sessions = @{}
 $passed = 0
 
-function Request($Method, $Path, $Token, $Body) {
+function Request($Method, $Path, $Token, $Body, [switch]$Confirm) {
     $request = @{
         Uri = "$base$Path"; Method = $Method; SkipHttpErrorCheck = $true; TimeoutSec = 10
     }
     if ($Token) { $request.Headers = @{ Authorization = "Bearer $Token" } }
+    if ($Confirm) {
+        $request.Headers['X-HRMS-Confirm'] = 'true'
+        $request.Headers['X-HRMS-Reason'] = 'RECORD_CORRECTION'
+    }
     if ($null -ne $Body) {
         $request.ContentType = 'application/json'
         $request.Body = ConvertTo-Json -InputObject $Body -Depth 8 -Compress
@@ -44,7 +48,7 @@ function Json-Body($Response) {
 function Assert-NoBankFields($Label, $Response) {
     $body = $Response.Content
     if ($body -is [byte[]]) { $body = [Text.Encoding]::UTF8.GetString($body) }
-    Assert-Fact $Label ($body -notmatch '"(bankName|bankAccountNo)"s*:')
+    Assert-Fact $Label ($body -notmatch '"(bankName|bankAccountNo)"\s*:')
 }
 
 try {
@@ -59,6 +63,8 @@ try {
             }
             Expect "$tenant $kind sign-in" $login 200
             $sessions["$tenant.$kind"] = (Json-Body $login).token
+            $unlock = Request Post '/sensitive/step-up' $sessions["$tenant.$kind"] @{password=$fixturePassword}
+            Assert-Fact "$tenant $kind completes step-up" ((Json-Body $unlock).verified)
         }
         $token = $sessions["$tenant.hr"]
         $directory = Request Get '/core/employees?page=0&size=20' $token
@@ -151,11 +157,12 @@ try {
         Assert-Fact "$tenant banking response disables caching" (($bankRead.Headers['Cache-Control'] -join ',') -match 'no-store')
         Expect "$tenant bank reader cannot write" (Request Put $bankPath $reader $sample) 403
         Expect "$tenant bank editor cannot read $other banking fields" (Request Get "$foreignPath/bank-details" $editor) 404
-        Expect "$tenant bank editor cannot write $other banking fields" (Request Put "$foreignPath/bank-details" $editor $sample) 404
-        Expect "$tenant bank editor can update its own company" (Request Put $bankPath $editor $sample) 204
+        Expect "$tenant bank editor cannot write $other banking fields" (Request Put "$foreignPath/bank-details" $editor $sample -Confirm) 404
+        Expect "$tenant bank editor must obtain independent approval" (Request Put $bankPath $editor $sample -Confirm) 202
         $readback = Request Get $bankPath $reader
         Expect "$tenant banking readback" $readback 200
-        Assert-Fact "$tenant bank details were updated" ((Json-Body $readback).bankAccountNo -ceq $sample.bankAccountNo)
+        Assert-Fact "$tenant pending change kept bank details intact" (
+            (Json-Body $readback).bankAccountNo -ceq (Json-Body $bankRead).bankAccountNo)
 
         $ordinaryEdit = @{
             employeeCode = $local.Code; firstName = $local.Employee.firstName; lastName = $local.Employee.lastName
@@ -166,7 +173,7 @@ try {
         Expect "$tenant ordinary employee update succeeds" (Request Put $localPath $token $ordinaryEdit) 200
         $afterEdit = Request Get $bankPath $reader
         Assert-Fact "$tenant ordinary update did not overwrite protected banking fields" (
-            (Json-Body $afterEdit).bankAccountNo -ceq $sample.bankAccountNo)
+            (Json-Body $afterEdit).bankAccountNo -ceq (Json-Body $bankRead).bankAccountNo)
         $roles = Json-Body (Request Get '/admin/roles?page=0&size=20' $token)
         $protectedRole = $roles.content | Where-Object name -eq 'Isolation Bank Editor'
         Assert-Fact "$tenant protected role exists" ($null -ne $protectedRole)
@@ -190,9 +197,8 @@ try {
         $audit = Request Get '/admin/audit-logs' $token
         Expect "$tenant audit trail" $audit 200
         $auditRows = Json-Body $audit
-        Assert-Fact "$tenant banking read and write are audited without the bank account value" (
+        Assert-Fact "$tenant banking read is audited without the bank account value" (
             @($auditRows | Where-Object action -eq 'READ_BANK_DETAILS').Count -gt 0 -and
-            @($auditRows | Where-Object action -eq 'UPDATE_BANK_DETAILS').Count -gt 0 -and
             "$($audit.Content)" -notlike "*$($sample.bankAccountNo)*")
         Assert-Fact "$tenant rejected write to a foreign employee remains auditable" (
             @($auditRows | Where-Object { $_.method -eq 'PUT' -and $_.status -eq 404 -and

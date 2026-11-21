@@ -16,14 +16,26 @@ spring:
     exclude: org.springframework.boot.autoconfigure.mail.MailSenderAutoConfiguration
 
 app:
+  finance:
+    controls: true
   cors:
-    allowed-origins: http://127.0.0.1:5174
+    allowed-origins: http://127.0.0.1:5174,http://localhost:5173,http://127.0.0.1:5173
   tenancy:
     allow-additional-companies: true
+    abac:
+      enabled: true
     rls:
       enabled: true
       key: ${HRMS_ISOLATION_RLS_KEY}
   platform:
+    audit-center:
+      enabled: true
     bootstrap-password-file: ""
+    rbac:
+      enabled: true
+    admin-view:
+      enabled: true
+    control-tower:
+      enabled: true
   mail:
     enabled: false

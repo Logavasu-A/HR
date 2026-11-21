@@ -62,17 +62,17 @@ public class PlatformCompanies {
                                 @NotBlank @Email @Size(max = 80) String adminEmail) {}
 
     @GetMapping("/dashboard")
-    public Map<String, Object> dashboard() {
+    public Map<String, Object> dashboard(@AuthenticationPrincipal PlatformAuth.Owner owner) {
         return Map.of("counts", jdbc.queryForMap("""
                 select count(*) as total, count(*) filter (where status = 'PENDING') as pending,
                        count(*) filter (where status = 'ACTIVE') as active,
                        count(*) filter (where status = 'SUSPENDED') as suspended from company
                 """),
-                "activity", jdbc.queryForList("""
+                "activity", owner.role() == PlatformRole.GLOBAL_SUPER_ADMIN ? jdbc.queryForList("""
                         select a.action, a.occurred_at, c.name as company_name
                           from platform_audit_event a left join company c on c.id = a.tenant_id
                          order by a.id desc limit 10
-                        """));
+                        """) : List.of());
     }
 
     @GetMapping("/companies")
@@ -111,7 +111,10 @@ public class PlatformCompanies {
         Long total = jdbc.queryForObject("select count(*) from platform_audit_event a" + condition,
                 Long.class, action, action);
         List<Map<String, Object>> events = jdbc.queryForList("""
-                select a.id, a.actor, a.action, a.occurred_at, a.tenant_id as company_id, c.name as company_name
+                select a.id, a.actor, a.action, a.occurred_at, a.tenant_id as company_id, c.name as company_name,
+                       to_jsonb(a)->>'reason' as reason, to_jsonb(a)->>'request_method' as request_method,
+                       to_jsonb(a)->>'request_path' as request_path, to_jsonb(a)->>'http_status' as http_status,
+                       to_jsonb(a)->>'request_id' as request_id
                   from platform_audit_event a left join company c on c.id = a.tenant_id
                 """ + condition + " order by a.id desc limit ? offset ?",
                 action, action, ACTIVITY_PAGE_SIZE, (long) index * ACTIVITY_PAGE_SIZE);

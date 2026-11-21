@@ -104,6 +104,7 @@ public class LeaveService {
 
     @Transactional(readOnly = true)
     public List<Balance> balances(Long employeeId, LocalDate onDate) {
+        employeeService.get(employeeId);
         List<Balance> out = new ArrayList<>();
         for (LeaveType type : leaveTypes.findAll()) {
             out.add(balance(employeeId, type, onDate));
@@ -187,6 +188,7 @@ public class LeaveService {
     @Transactional
     public LeaveApplication decide(Long id, boolean approve, String remarks) {
         LeaveApplication app = get(id);
+        CurrentUser.rejectScopedSelfApproval(app.getEmployee().getId());
         if (app.getStatus() != ApprovalStatus.PENDING) {
             throw ApiException.badRequest("Only pending applications can be approved or rejected");
         }

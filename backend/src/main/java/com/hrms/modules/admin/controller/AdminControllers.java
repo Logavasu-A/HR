@@ -21,6 +21,8 @@ import com.hrms.shared.common.PageResponse;
 import com.hrms.modules.audit.model.AuditLog;
 import com.hrms.modules.audit.repository.AuditLogRepo;
 import com.hrms.shared.security.CurrentUser;
+import com.hrms.shared.security.CompanyRecordScope;
+import com.hrms.shared.tenancy.TenantDatabaseScope;
 
 public class AdminControllers {
 
@@ -34,11 +36,13 @@ public class AdminControllers {
 
         private final PasswordEncoder encoder;
         private final RoleRepo roles;
+        private final TenantDatabaseScope scope;
 
-        public Users(UserRepo repo, PasswordEncoder encoder, RoleRepo roles) {
+        public Users(UserRepo repo, PasswordEncoder encoder, RoleRepo roles, TenantDatabaseScope scope) {
             super(repo);
             this.encoder = encoder;
             this.roles = roles;
+            this.scope = scope;
         }
 
         @Override
@@ -53,7 +57,7 @@ public class AdminControllers {
 
         @Override
         protected AppUser doUpdate(AppUser existing, AppUser body) {
-            EmployeeBankService.checkDelegation(existing.getRole().getPermissions());
+            check(existing.getRole(), scope);
             validateAssignedRole(body);
             if (body.getPassword() != null && !body.getPassword().isBlank()) {
                 if (body.getPassword().length() < 8) {
@@ -68,8 +72,8 @@ public class AdminControllers {
 
         @Override
         protected void doDelete(AppUser existing) {
-            EmployeeBankService.checkDelegation(existing.getRole().getPermissions());
-            if (existing.getId().equals(CurrentUser.get().id())) {
+            check(existing.getRole(), scope);
+            if (CurrentUser.isCompanyUser(existing.getId())) {
                 throw ApiException.badRequest("You cannot delete your own login");
             }
             repo.delete(existing);
@@ -79,7 +83,7 @@ public class AdminControllers {
             var roleId = user.getRole().getId();
             if (roleId == null) throw ApiException.badRequest("A role is required.");
             var role = roles.findById(roleId).orElseThrow(() -> ApiException.notFound("Role not found"));
-            EmployeeBankService.checkDelegation(role.getPermissions());
+            check(role, scope);
             user.setRole(role);
         }
     }
@@ -87,26 +91,29 @@ public class AdminControllers {
     @RestController
     @RequestMapping("/api/admin/roles")
     public static class Roles extends CrudController<Role> {
-        public Roles(RoleRepo repo) {
+        private final TenantDatabaseScope scope;
+
+        public Roles(RoleRepo repo, TenantDatabaseScope scope) {
             super(repo);
+            this.scope = scope;
         }
 
         @Override
         protected Role doCreate(Role role) {
-            EmployeeBankService.checkDelegation(role.getPermissions());
+            check(role, scope);
             return super.doCreate(role);
         }
 
         @Override
         protected Role doUpdate(Role existing, Role update) {
-            EmployeeBankService.checkDelegation(existing.getPermissions());
-            EmployeeBankService.checkDelegation(update.getPermissions());
+            check(existing, scope);
+            check(update, scope);
             return super.doUpdate(existing, update);
         }
 
         @Override
         protected void doDelete(Role role) {
-            EmployeeBankService.checkDelegation(role.getPermissions());
+            check(role, scope);
             super.doDelete(role);
         }
     }
@@ -116,9 +123,11 @@ public class AdminControllers {
     public static class Misc {
 
         private final AuditLogRepo auditLogs;
+        private final TenantDatabaseScope scope;
 
-        public Misc(AuditLogRepo auditLogs) {
+        public Misc(AuditLogRepo auditLogs, TenantDatabaseScope scope) {
             this.auditLogs = auditLogs;
+            this.scope = scope;
         }
 
         @GetMapping("/audit-logs")
@@ -144,10 +153,22 @@ public class AdminControllers {
                     out.add(m + ":approve");
                 }
             }
-            var held = CurrentUser.get().permissions();
-            if (held.contains(EmployeeBankService.READ)) out.add(EmployeeBankService.READ);
-            if (held.contains(EmployeeBankService.WRITE)) out.add(EmployeeBankService.WRITE);
+            if (CurrentUser.hasExplicitPermission(EmployeeBankService.READ)) out.add(EmployeeBankService.READ);
+            if (CurrentUser.hasExplicitPermission(EmployeeBankService.WRITE)) out.add(EmployeeBankService.WRITE);
+            if (CurrentUser.isPlatformWorkspace() || CurrentUser.hasExplicitPermission("sensitive:approve")) {
+                out.add("sensitive:approve");
+            }
+            if (scope.abacEnabled()) out.addAll(CompanyRecordScope.MARKERS);
             return out;
+        }
+    }
+
+    private static void check(Role role, TenantDatabaseScope scope) {
+        CompanyRecordScope.checkDelegation(role.getPermissions(), scope.abacEnabled());
+        EmployeeBankService.checkDelegation(role.getPermissions());
+        if (role.getPermissions().contains("sensitive:approve") && !CurrentUser.isPlatformWorkspace()
+                && !CurrentUser.hasExplicitPermission("sensitive:approve")) {
+            throw ApiException.forbidden("You cannot administer the financial approval permission.");
         }
     }
 }

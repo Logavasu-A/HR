@@ -21,30 +21,42 @@ public class TenantDatabaseScope {
     private final JdbcTemplate jdbc;
     private final TransactionTemplate transactions;
     private final SecretKeySpec key;
+    private final boolean abac;
 
     public TenantDatabaseScope(JdbcTemplate jdbc, PlatformTransactionManager transactionManager,
                                @Value("${app.tenancy.rls.enabled:false}") boolean enabled,
-                               @Value("${app.tenancy.rls.key:}") String configuredKey) {
+                               @Value("${app.tenancy.rls.key:}") String configuredKey,
+                               @Value("${app.tenancy.abac.enabled:false}") boolean abac) {
         this.jdbc = jdbc;
         this.transactions = new TransactionTemplate(transactionManager);
         if (enabled && !configuredKey.matches("[0-9a-fA-F]{64}")) {
             throw new IllegalStateException("Tenant RLS requires a 32-byte hexadecimal signing key.");
         }
         this.key = enabled ? new SecretKeySpec(HexFormat.of().parseHex(configuredKey), "HmacSHA256") : null;
+        this.abac = abac;
+        if (abac && !enabled) throw new IllegalStateException("Company record scope requires tenant RLS.");
     }
 
     public boolean enabled() {
         return key != null;
     }
 
+    public boolean abacEnabled() {
+        return abac;
+    }
+
     public <T> T transaction(UUID tenant, TransactionCallback<T> work) {
+        return transaction(tenant, null, work);
+    }
+
+    public <T> T transaction(UUID tenant, Long actor, TransactionCallback<T> work) {
         if (!enabled() || TransactionSynchronizationManager.isActualTransactionActive()) {
             throw new IllegalStateException("Tenant request scope requires a new RLS transaction.");
         }
         CompanyTenancy.attach(tenant);
         try {
             return transactions.execute(status -> {
-                bind(tenant);
+                bind(tenant, abac ? actor : null);
                 return work.doInTransaction(status);
             });
         } finally {
@@ -54,6 +66,10 @@ public class TenantDatabaseScope {
 
     /** Binds trusted company context for JDBC workflows inside their existing transaction. */
     public void bind(UUID tenant) {
+        bind(tenant, null);
+    }
+
+    private void bind(UUID tenant, Long actor) {
         if (!enabled()) return;
         if (!TransactionSynchronizationManager.isActualTransactionActive()) {
             throw new IllegalStateException("Tenant RLS context requires an active transaction.");
@@ -65,8 +81,13 @@ public class TenantDatabaseScope {
         String transaction = jdbc.queryForObject("""
                 select pg_backend_pid()::text || ':' || pg_current_xact_id()::text
                 """, String.class);
-        String signature = sign(tenant + ":" + transaction);
-        jdbc.queryForObject("select set_config('hrms.tenant_binding', ?, true)", String.class, tenant + ":" + signature);
+        String message = tenant + ":" + transaction;
+        String claim = tenant.toString();
+        if (actor != null) {
+            message = "company-user:" + message + ":" + actor;
+            claim += ":" + actor;
+        }
+        jdbc.queryForObject("select set_config('hrms.tenant_binding', ?, true)", String.class, claim + ":" + sign(message));
         if (!tenant.equals(jdbc.queryForObject("select hrms_rls.current_tenant()", UUID.class))) {
             throw new IllegalStateException("The database rejected the tenant transaction binding.");
         }

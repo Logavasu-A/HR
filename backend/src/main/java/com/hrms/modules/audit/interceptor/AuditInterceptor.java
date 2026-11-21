@@ -60,6 +60,12 @@ public class AuditInterceptor implements HandlerInterceptor {
         }
     }
 
+    public void deferFinancialDenial(HttpServletRequest request, int status, UUID correlation) {
+        request.setAttribute(REJECTED_OPERATION, AuditLog.of(CurrentUser.usernameOrSystem(),
+                "FINANCIAL_DENIAL", request.getMethod(), request.getServletPath() + "#" + correlation,
+                status, request.getRemoteAddr()));
+    }
+
     private static String actionOf(String method, String path) {
         if ("PUT".equals(method)) {
             return "UPDATE";

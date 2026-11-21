@@ -19,7 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 @EnabledIfEnvironmentVariable(named = "HRMS_RLS_TEST_DB",
-        matches = "hrms_(isolation|rls_rehearsal)_20261119")
+        matches = "hrms_((isolation|rls_rehearsal)_20261119|(access|sensitive)_rehearsal_20261121)")
 class TenantRowSecurityTest {
     private static final String RUNTIME = "hrms_isolation_app";
     private static final String DATABASE = System.getenv("HRMS_RLS_TEST_DB");
@@ -98,6 +98,107 @@ class TenantRowSecurityTest {
         }
     }
 
+    @Test
+    @EnabledIfEnvironmentVariable(named = "HRMS_TEST_RECORD_SCOPES", matches = "true")
+    void actorBoundPoliciesLimitDepartmentDirectReportsAndOwnRows() throws Exception {
+        try (var connection = connect()) {
+            var tenant = company(connection, "access");
+            long departmentManager = actor(connection, "dept");
+            long reportingManager = actor(connection, "report");
+            long employee = actor(connection, "employee");
+
+            bind(connection, tenant, departmentManager);
+            assertCodes(connection, "VERIFY-ACCESS-DEPT,VERIFY-ACCESS-DIRECT,VERIFY-ACCESS-PEER");
+            long peerLeave = ((Number) value(connection,
+                    "select id from leave_application where reason = 'VERIFY-ACCESS-PEER'")).longValue();
+            assertThat(update(connection, "update employee set first_name = first_name where employee_code = 'VERIFY-ACCESS-REPORT'")).isZero();
+            rejected(connection, "42501", () -> update(connection, """
+                    update employee set department_id = (select min(id) from department where name = 'Operations')
+                    where employee_code = 'VERIFY-ACCESS-PEER'
+                    """));
+            connection.rollback();
+
+            String reportClaim = bind(connection, tenant, reportingManager);
+            assertCodes(connection, "VERIFY-ACCESS-DIRECT,VERIFY-ACCESS-REPORT");
+            assertThat(value(connection, "select count(distinct employee_id) from attendance")).isEqualTo(2L);
+            long managerId = ((Number) value(connection,
+                    "select id from employee where employee_code = 'VERIFY-ACCESS-REPORT'")).longValue();
+            long directReportId = ((Number) value(connection,
+                    "select id from employee where employee_code = 'VERIFY-ACCESS-DIRECT'")).longValue();
+            assertThat(value(connection, """
+                    select count(*) from leave_application
+                    where tenant_id is distinct from ? or employee_id is null or employee_id not in (?, ?)
+                    """, tenant, managerId, directReportId)).isEqualTo(0L);
+            assertThat(value(connection, "select count(*) from leave_application where id = ?", peerLeave))
+                    .isEqualTo(0L);
+            assertThat(value(connection, """
+                    select string_agg(status, ',') from leave_application
+                    where employee_id = ?
+                    """, managerId)).isEqualTo("PENDING");
+            assertThat(value(connection, """
+                    select string_agg(status, ',') from leave_application
+                    where employee_id = ? and reason = 'VERIFY-ACCESS-DIRECT'
+                    """, directReportId)).isIn("PENDING", "APPROVED");
+            assertThat(value(connection, """
+                    select count(*) from leave_application
+                    where employee_id = ? and reason is distinct from 'VERIFY-ACCESS-DIRECT'
+                        and status is distinct from 'CANCELLED'
+                    """, directReportId)).isEqualTo(0L);
+            assertThat(value(connection, "select count(*) from payroll_run")).isEqualTo(0L);
+            assertThat(value(connection, "select count(*) from employee where tenant_id <> ?", tenant)).isEqualTo(0L);
+            setClaim(connection, reportClaim.replace(":" + reportingManager + ":", ":" + departmentManager + ":"));
+            assertUnbound(connection, coveredTables(connection));
+            connection.rollback();
+
+            bind(connection, tenant, employee);
+            assertCodes(connection, "VERIFY-ACCESS-DIRECT");
+            assertThat(value(connection, "select count(*) from salary_slip")).isEqualTo(1L);
+            connection.rollback();
+            bind(connection, tenant, actor(connection, "unlinked"));
+            assertThat(value(connection, "select count(*) from employee")).isEqualTo(0L);
+        }
+    }
+
+    private static long actor(Connection connection, String username) throws SQLException {
+        return ((Number) value(connection, "select user_id from hrms_rls.lookup_account(true, 'isolation-access', ?)",
+                "isolation.access." + username)).longValue();
+    }
+
+    @Test
+    @EnabledIfEnvironmentVariable(named = "HRMS_TEST_FINANCE", matches = "true")
+    void financialAuditAndReviewTablesEnforceForcedRlsAndAppendOnlyAudit() throws Exception {
+        try (var connection = connect()) {
+            var alpha = company(connection, "alpha");
+            var bravo = company(connection, "bravo");
+            var review = UUID.randomUUID();
+            bind(connection, alpha);
+            assertThat(update(connection, """
+                    insert into hrms_rls.finance_approval(id,tenant_id,maker,method,path,fingerprint,reason)
+                    values (?,?,'company:0','POST','/api/payroll/runs',?,'REGULAR_PROCESSING')
+                    """, review, alpha, "0".repeat(64))).isOne();
+            rejected(connection, "42501", () -> update(connection, """
+                    insert into hrms_rls.finance_approval(tenant_id,maker,method,path,fingerprint,reason)
+                    values (?,'company:0','POST','/api/payroll/runs',?,'REGULAR_PROCESSING')
+                    """, bravo, "0".repeat(64)));
+            rejected(connection, "42501", () -> update(connection, "delete from hrms_rls.finance_event"));
+            rejected(connection, "42501", () -> update(connection, "update hrms_rls.finance_event set status=200"));
+            assertThat(value(connection, "select count(*) from hrms_rls.finance_approval where tenant_id=?", bravo)).isEqualTo(0L);
+            assertThat(value(connection, "select count(*) from hrms_rls.finance_event where tenant_id=?", bravo)).isEqualTo(0L);
+            connection.rollback();
+            bind(connection, bravo);
+            assertThat(value(connection, "select count(*) from hrms_rls.finance_approval where tenant_id=?", alpha)).isEqualTo(0L);
+            assertThat(value(connection, "select count(*) from hrms_rls.finance_event where tenant_id=?", alpha)).isEqualTo(0L);
+            connection.rollback();
+            assertThat(value(connection, "select count(*) from hrms_rls.finance_approval")).isEqualTo(0L);
+            assertThat(value(connection, "select count(*) from hrms_rls.finance_event")).isEqualTo(0L);
+        }
+    }
+
+    private static void assertCodes(Connection connection, String codes) throws SQLException {
+        assertThat(value(connection, "select string_agg(employee_code, ',' order by employee_code) from employee"))
+                .isEqualTo(codes);
+    }
+
     private static Connection connect() throws SQLException {
         var connection = DriverManager.getConnection("jdbc:postgresql://127.0.0.1:5432/" + DATABASE,
                 RUNTIME, System.getenv("HRMS_ISOLATION_RUNTIME_PASSWORD"));
@@ -162,11 +263,17 @@ class TenantRowSecurityTest {
     }
 
     private static String bind(Connection connection, UUID tenant) throws Exception {
+        return bind(connection, tenant, null);
+    }
+
+    private static String bind(Connection connection, UUID tenant, Long actor) throws Exception {
         String transaction = (String) value(connection, "select pg_backend_pid()::text || ':' || pg_current_xact_id()::text");
         var signer = Mac.getInstance("HmacSHA256");
         signer.init(new SecretKeySpec(HexFormat.of().parseHex(System.getenv("HRMS_ISOLATION_RLS_KEY")), "HmacSHA256"));
-        byte[] message = (tenant + ":" + transaction).getBytes(StandardCharsets.UTF_8);
-        String claim = tenant + ":" + HexFormat.of().formatHex(signer.doFinal(message));
+        String binding = tenant + ":" + transaction;
+        if (actor != null) binding = "company-user:" + binding + ":" + actor;
+        String claim = tenant + ":" + (actor == null ? "" : actor + ":")
+                + HexFormat.of().formatHex(signer.doFinal(binding.getBytes(StandardCharsets.UTF_8)));
         setClaim(connection, claim);
         return claim;
     }

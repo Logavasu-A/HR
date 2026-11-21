@@ -29,6 +29,14 @@ public class IsolationRuntimeGuard {
                     and not has_schema_privilege(current_user, 'public', 'CREATE')
                     and not has_database_privilege(current_user, current_database(), 'CREATE')
                     and not exists (select 1 from pg_auth_members where member = r.oid)
+                    and to_regclass('hrms_rls.platform_role') is not null
+                    and to_regprocedure('hrms_rls.record_access()') is not null
+                    and (
+                        select count(*) from pg_policy p join pg_class c on c.oid = p.polrelid
+                        join pg_namespace n on n.oid = c.relnamespace
+                        where n.nspname = 'public' and p.polname = 'company_record_scope'
+                          and not p.polpermissive and c.relrowsecurity and c.relforcerowsecurity
+                    ) = 21
                     and not exists (
                         select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace
                         where n.nspname = 'public' and c.relowner = r.oid

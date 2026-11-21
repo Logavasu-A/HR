@@ -3,7 +3,6 @@ import { opts, employeeField } from '@/shared/modelHelpers'
 export default [
   {
     path: '/salary-assignments', group: 'Payroll', title: 'Salary assignments', perm: 'payroll', endpoint: '/payroll/assignments',
-    hint: 'Gives an employee a salary structure and a monthly base salary from a date onward. Payroll uses the latest one.',
     columns: [
       { key: 'employee.fullName', label: 'Employee' },
       { key: 'structure.name', label: 'Structure' },
@@ -19,7 +18,6 @@ export default [
   },
   {
     path: '/salary-structures', group: 'Payroll', title: 'Salary structures', perm: 'payroll', endpoint: '/payroll/structures',
-    hint: 'Each line is a fixed amount or a percentage. "Percent of gross" is meant for deductions.',
     columns: [
       { key: 'name', label: 'Name' },
       { key: 'active', label: 'Active' },
@@ -35,6 +33,7 @@ export default [
           {
             key: 'amountType', label: 'Calculated as', type: 'select', required: true, default: 'PERCENT_OF_BASE',
             options: opts('FIXED', 'PERCENT_OF_BASE', 'PERCENT_OF_GROSS'),
+            help: '"Percent of gross" is meant for deductions.',
           },
           { key: 'amountValue', label: 'Amount or %', type: 'number', required: true },
         ],

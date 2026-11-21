@@ -19,6 +19,8 @@ import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.NotFound;
+import org.hibernate.annotations.NotFoundAction;
 
 @Entity
 @Table(name = "salary_slip")
@@ -28,6 +30,7 @@ public class SalarySlip extends BaseEntity {
 
     @ManyToOne
     @JoinColumn(name = "run_id")
+    @NotFound(action = NotFoundAction.IGNORE) // Self service can read a slip without seeing the company payroll run.
     @JsonIgnoreProperties({"skipped"})
     private PayrollRun run;
 

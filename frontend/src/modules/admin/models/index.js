@@ -1,13 +1,12 @@
 export default [
   {
     path: '/users', group: 'Administration', title: 'Users', perm: 'admin', endpoint: '/admin/users',
-    hint: 'Link a user to an employee so they can use the self-service screens.',
     columns: [
       { key: 'username', label: 'Username' },
       { key: 'email', label: 'Email' },
       { key: 'role.name', label: 'Role' },
       { key: 'employee.fullName', label: 'Employee' },
-      { key: 'active', label: 'Active' },
+      { key: 'active', label: 'Active', badge: true },
     ],
     fields: [
       { key: 'username', label: 'Username', type: 'text', required: true },
@@ -20,7 +19,6 @@ export default [
   },
   {
     path: '/roles', group: 'Administration', title: 'Roles', perm: 'admin', endpoint: '/admin/roles',
-    hint: 'read = view the screens, write = add and change records, approve = approve, reject, pay, submit. "*" means everything.',
     columns: [
       { key: 'name', label: 'Name' },
       { key: 'description', label: 'Description' },
@@ -29,13 +27,18 @@ export default [
     fields: [
       { key: 'name', label: 'Name', type: 'text', required: true },
       { key: 'description', label: 'Description', type: 'text' },
-      { key: 'permissions', label: 'Permissions', type: 'multicheck', endpoint: '/admin/permissions' },
+      {
+        key: 'permissions', label: 'Permissions', type: 'multicheck', endpoint: '/admin/permissions',
+        optionHelp: {
+          prefix: 'scope:',
+          text: 'Select at most one scope option. A scoped role uses the employee linked to the account.',
+        },
+      },
     ],
   },
   {
     path: '/audit-log', group: 'Administration', title: 'Audit log', perm: 'admin', endpoint: '/admin/audit-logs',
     create: false, edit: false, remove: false,
-    hint: 'Every change made through the system and every login, newest first.',
     columns: [
       { key: 'at', label: 'When' },
       { key: 'username', label: 'User' },

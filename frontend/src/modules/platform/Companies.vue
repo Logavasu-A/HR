@@ -2,6 +2,8 @@
 import { nextTick, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { pretty } from '@/shared/utils'
+import PlatformState from './PlatformState.vue'
+import PlatformPageHeader from './PlatformPageHeader.vue'
 
 const router = useRouter()
 const search = ref('')
@@ -38,11 +40,13 @@ async function platform(path, method = 'GET', body) {
   if (token) headers.Authorization = 'Bearer ' + token
   if (body) headers['Content-Type'] = 'application/json'
   const response = await fetch('/api/platform' + path, {
-    method, headers, body: body ? JSON.stringify(body) : undefined,
+    method, headers, cache: 'no-store', body: body ? JSON.stringify(body) : undefined,
   })
   if (response.status === 401) {
-    sessionStorage.removeItem('hrms_platform_token')
-    router.replace('/platform/login')
+    if (sessionStorage.getItem('hrms_platform_token') === token) {
+      sessionStorage.removeItem('hrms_platform_token')
+      router.replace('/platform/login')
+    }
     throw new Error('Your owner session has ended.')
   }
   const data = await response.json().catch(() => null)
@@ -95,7 +99,7 @@ async function refresh(page = results.value?.page ?? 0) {
   const [summary, companies, history] = await Promise.all([
     platform('/dashboard'),
     availableCompanyPage(appliedFilters.value, page),
-    activityPage(activityAction.value, activity.value?.events.page ?? 0),
+    security.value?.role === 'GLOBAL_SUPER_ADMIN' ? activityPage(activityAction.value, activity.value?.events.page ?? 0) : null,
   ])
   dashboard.value = summary
   results.value = companies
@@ -197,12 +201,6 @@ function change(action) {
   })
 }
 
-async function signOut() {
-  await platform('/logout', 'POST')
-  sessionStorage.removeItem('hrms_platform_token')
-  router.replace('/platform/login')
-}
-
 const start = () => run(async () => {
   security.value = await platform('/session')
   await refresh(0)
@@ -224,24 +222,16 @@ onMounted(start)
 </script>
 
 <template>
-  <main class="content owner-console">
-    <header class="owner-header">
-      <div>
-        <p class="owner-section">Platform administration</p>
-        <h1>Companies</h1>
-      </div>
-      <div class="owner-actions">
-        <span v-if="security" class="owner-account">{{ security.username }}</span>
+  <section class="owner-console">
+    <PlatformPageHeader title="Companies">
         <button v-if="results" class="btn small" :disabled="busy" @click="run(() => refresh())">Refresh</button>
-        <router-link class="btn small" to="/platform/login">Sign in again</router-link>
-        <button class="btn small" :disabled="busy || !security" @click="run(signOut)">Sign out</button>
         <button v-if="results" class="btn primary" type="button" :disabled="busy" @click="showEditor(add)">Add company</button>
-      </div>
-    </header>
-    <p v-if="error" class="alert" role="alert">{{ error }}</p>
+    </PlatformPageHeader>
+    <PlatformState v-if="error" kind="error" title="Company request failed" :message="error">
+      <button v-if="!results" class="btn small" type="button" :disabled="busy" @click="start">Try again</button>
+    </PlatformState>
     <p v-if="notice" class="alert" :class="noticeKind" role="status">{{ notice }}</p>
-    <p v-if="busy && !results" role="status">Loading companies…</p>
-    <button v-if="error && !results" class="btn" type="button" :disabled="busy" @click="start">Try again</button>
+    <PlatformState v-if="busy && !results" kind="loading" title="Loading companies" />
 
     <template v-if="results">
       <section v-if="dashboard" class="owner-stats" aria-label="Filter companies by status">
@@ -291,6 +281,8 @@ onMounted(start)
           </template>
         </dl>
         <div class="owner-actions">
+          <router-link v-if="security?.adminView" class="btn primary"
+            :to="{ path: '/platform/workspace', query: { company: selection.id } }">Open Admin View</router-link>
           <button class="btn" :disabled="busy" @click="showEditor(edit)">Edit details</button>
           <button v-if="selection.status === 'ACTIVE'" class="btn danger" :disabled="busy" @click="change('suspend')">Suspend company</button>
           <button v-if="selection.status === 'SUSPENDED'" class="btn" :disabled="busy" @click="change('reactivate')">Reactivate company</button>
@@ -299,7 +291,7 @@ onMounted(start)
         </div>
       </section>
 
-      <div class="owner-grid">
+      <div class="owner-grid" :class="{ 'owner-grid--single': security?.role === 'PLATFORM_ADMINISTRATOR' }">
         <section class="card owner-directory" aria-labelledby="company-directory">
           <header class="owner-panel-heading">
             <h2 id="company-directory">Company directory</h2>
@@ -331,17 +323,26 @@ onMounted(start)
                 <tr>
                   <th scope="col">Company</th>
                   <th scope="col" class="owner-status">Status</th>
-                  <th scope="col" class="actions-col">Details</th>
+                  <th scope="col" class="actions-col">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="company in results.content" :key="company.id">
                   <td>
-                    <strong>{{ company.name }}</strong>
+                    <router-link v-if="security?.adminView" :to="{ path: '/platform/workspace', query: { company: company.id } }">
+                      <strong>{{ company.name }}</strong>
+                    </router-link>
+                    <strong v-else>{{ company.name }}</strong>
                     <span class="company-code muted">{{ [company.code, company.currency, company.timezone].filter(Boolean).join(' · ') }}</span>
                   </td>
                   <td><span class="badge" :class="company.status.toLowerCase()">{{ pretty(company.status) }}</span></td>
-                  <td class="actions"><button class="btn small" :aria-label="`View ${company.name}`" :disabled="busy" @click="run(() => showCompany(company.id))">View</button></td>
+                  <td class="actions">
+                    <div class="company-row-actions">
+                      <router-link v-if="security?.adminView" class="btn small" :aria-label="`Open ${company.name} workspace`"
+                        :to="{ path: '/platform/workspace', query: { company: company.id } }">Open workspace</router-link>
+                      <button class="btn small tonal" :aria-label="`View ${company.name}`" :disabled="busy" @click="run(() => showCompany(company.id))">Details</button>
+                    </div>
+                  </td>
                 </tr>
                 <tr v-if="!results.content.length" class="table-state-row">
                   <td colspan="3" class="empty">
@@ -358,7 +359,7 @@ onMounted(start)
           </div>
         </section>
 
-        <section class="card owner-activity" aria-labelledby="recent-activity">
+        <section v-if="security?.role === 'GLOBAL_SUPER_ADMIN'" class="card owner-activity" aria-labelledby="recent-activity">
           <div class="owner-panel-heading">
             <h2 id="recent-activity">Activity history</h2>
             <select v-if="activity?.actions.length" :value="activityAction" aria-label="Filter activity by action"
@@ -373,6 +374,10 @@ onMounted(start)
               <button v-if="event.company_id" class="owner-company-link" type="button" :disabled="busy"
                 @click="run(() => showCompany(event.company_id))">{{ event.company_name }}</button>
               <span class="muted">{{ event.actor }}</span>
+              <span v-if="event.reason">{{ event.reason }}</span>
+              <span v-if="event.request_method" class="muted activity-request">
+                {{ event.request_method }} {{ event.request_path }} · {{ event.http_status }}
+              </span>
               <time :datetime="event.occurred_at">{{ new Date(event.occurred_at).toLocaleString() }}</time>
             </li>
           </ul>
@@ -385,45 +390,55 @@ onMounted(start)
         </section>
       </div>
     </template>
-  </main>
+  </section>
 </template>
 
 <style scoped>
-.owner-console { max-width: 1360px; }
-.owner-header, .owner-panel-heading {
+.owner-panel-heading {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 10px 16px;
 }
-.owner-header { margin-bottom: 24px; }
-.owner-header h1 { font-size: clamp(26px, 4vw, 38px); line-height: 1.12; }
-.owner-section { margin: 0 0 4px; color: var(--primary-dark); font-size: 13px; font-weight: 650; }
 .owner-actions, .owner-pagination { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .owner-actions a { text-decoration: none; }
-.owner-account { color: var(--muted); overflow-wrap: anywhere; }
 .owner-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 20px; }
-.owner-metric { min-width: 0; padding: 16px; border-top: 3px solid var(--primary); text-align: left; cursor: pointer; }
-.owner-metric[aria-pressed="true"] { box-shadow: inset 0 0 0 1px var(--primary); }
-.owner-metric:hover:not(:disabled) { background: var(--surface-hover, #f5f6ff); }
-.owner-metric[data-status="active"] { border-top-color: var(--success); }
-.owner-metric[data-status="pending"] { border-top-color: var(--warn); }
-.owner-metric[data-status="suspended"] { border-top-color: var(--danger); }
-.owner-grid { display: grid; grid-template-columns: minmax(0, 2.1fr) minmax(250px, 1fr); gap: 16px; align-items: start; }
-.owner-directory { min-width: 0; overflow: hidden; }
-.owner-directory .owner-panel-heading { padding: 14px var(--table-cell-inline-padding) 6px; }
+.owner-metric { min-width: 0; padding: var(--platform-card-padding); text-align: left; cursor: pointer; }
+.owner-metric[data-status="active"] { --status-dot: var(--ok-line); }
+.owner-metric[data-status="pending"] { --status-dot: var(--warn-line); }
+.owner-metric[data-status="suspended"] { --status-dot: var(--bad-line); }
+.owner-metric[data-status]:not([data-status="total"]) .stat-label::before {
+  content: ''; display: inline-block; width: 8px; height: 8px;
+  border-radius: 50%; margin-inline-end: var(--space-8); background: var(--status-dot);
+}
+.owner-metric:hover:not(:disabled) { background: var(--row-hover); }
+.owner-metric[aria-pressed="true"] {
+  background: var(--primary-tint); border-color: var(--primary-tint-2);
+  box-shadow: inset 3px 0 0 var(--accent), var(--shadow-card);
+}
+.owner-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(245px, .32fr); gap: 16px; align-items: start; }
+.owner-grid--single { grid-template-columns: minmax(0, 1fr); }
+.owner-directory { min-width: 0; overflow: hidden; padding: var(--platform-card-padding); }
+.owner-directory .owner-panel-heading { margin-bottom: var(--space-12); padding-inline-start: var(--table-cell-inline-padding); }
 .owner-panel-heading h2 { margin: 0; }
 .owner-filters {
   display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px;
-  padding: 6px var(--table-cell-inline-padding) 14px;
+  padding: 0 0 var(--space-16);
 }
 .owner-filters input.search { flex: 1 1 185px; min-width: 0; }
+.owner-filters select { width: auto; min-width: 0; max-width: 100%; }
 .owner-editor-actions { margin-top: 16px; }
 .owner-status { width: 1%; }
 .company-code { display: block; font-size: 12px; overflow-wrap: anywhere; }
+.company-row-actions { display: flex; justify-content: flex-end; gap: 6px; min-width: max-content; }
+.company-row-actions .btn { white-space: nowrap; }
+.owner-directory .data-table { min-width: 580px; }
+.owner-directory .actions-col { width: 225px; }
+.owner-directory td:first-child a { text-decoration: none; }
+.owner-directory td:first-child a:hover { text-decoration: underline; }
 .owner-pagination { justify-content: flex-end; padding: 12px var(--table-cell-inline-padding); border-top: 1px solid var(--line); }
-.owner-editor, .owner-activity { min-width: 0; padding: 18px; }
+.owner-editor, .owner-activity { min-width: 0; padding: var(--platform-card-padding); }
 .owner-editor { margin-bottom: 16px; border-top: 3px solid var(--primary); }
 .owner-editor h2 { scroll-margin-top: 16px; }
 .owner-details {
@@ -435,14 +450,22 @@ onMounted(start)
 .owner-activity ul { padding: 0; margin: 0; list-style: none; }
 .owner-activity li { display: grid; gap: 2px; padding: 10px 0; border-bottom: 1px solid var(--line); }
 .owner-activity li:last-child { border-bottom: 0; padding-bottom: 0; }
+.activity-request { overflow-wrap: anywhere; }
 .owner-company-link { justify-self: start; padding: 0; border: 0; background: transparent; color: var(--primary-dark); text-align: left; cursor: pointer; }
 .owner-company-link:hover { text-decoration: underline; }
 .activity-pagination { padding-inline: 0; margin-top: 12px; }
-.badge.suspended { background: var(--danger-soft); color: var(--danger-text); }
-@media (max-width: 860px) { .owner-grid { grid-template-columns: minmax(0, 1fr); } }
+.badge.suspended { background: var(--bad-bg); color: var(--bad-text); }
+@media (max-width: 1200px) { .owner-grid { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 520px) {
+  .owner-directory .data-table { min-width: 0; table-layout: fixed; }
+  .owner-directory :is(.owner-status, .actions-col) { width: 4.75rem; }
+  .owner-directory :is(.owner-status, .actions-col, td:nth-child(2), td.actions) { padding-inline: 4px; }
+  .owner-directory .badge { padding-inline: 5px; gap: 4px; font-size: 11px; }
+  .company-row-actions { display: grid; justify-content: stretch; min-width: 0; }
+  .company-row-actions .btn { margin: 0; padding-inline: 4px; white-space: normal; text-align: center; }
   .owner-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .owner-filters input.search { flex-basis: 100%; }
+  .owner-filters select { flex: 1 1 120px; }
   .owner-editor-actions > .primary { flex: 1 1 auto; }
 }
 </style>

@@ -1,8 +1,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import api from '@/shared/api'
-import { can } from '@/shared/auth'
+import { useWorkspace } from '@/shared/workspaceContext'
 import { errorMessage, getPath, money, pretty } from '@/shared/utils'
 import AppDialog from './AppDialog.vue'
 import FieldInput from './FieldInput.vue'
@@ -12,6 +11,8 @@ import PaginationBar from './PaginationBar.vue'
 
 const props = defineProps({ config: { type: Object, required: true } })
 const router = useRouter()
+const workspace = useWorkspace()
+const { api, can } = workspace
 
 const rows = ref([])
 const loading = ref(true)
@@ -38,8 +39,8 @@ const canEdit = computed(() => flag('edit'))
 const canRemove = computed(() => flag('remove'))
 
 const rowActions = (row) =>
-  (props.config.actions || []).filter((a) => (!a.perm || can(a.perm)) && (!a.show || a.show(row)))
-const hasActionColumn = computed(() => canEdit.value || canRemove.value || (props.config.actions || []).length > 0)
+  (props.config.actions || []).filter((a) => (!a.perm || can(a.perm)) && (!a.show || a.show(row, workspace)))
+const hasActionColumn = computed(() => canEdit.value || canRemove.value || rows.value.some(row => rowActions(row).length))
 
 function menuItems(row) {
   const items = rowActions(row).map((a) => ({
@@ -217,7 +218,7 @@ async function remove(row) {
 }
 
 async function runAction(action, row) {
-  if (action.route) return router.push(action.route(row))
+  if (action.route) return router.push(action.route(row, workspace))
   if (action.confirm && !window.confirm(action.confirm)) return
   let body = {}
   if (action.ask) {
@@ -254,12 +255,20 @@ onMounted(load)
 <template>
   <div>
     <div class="page-head crud-heading">
-      <h1>{{ config.title }}</h1>
+      <div class="crud-title-wrap">
+        <h1>{{ config.title }}</h1>
+      </div>
       <div class="spacer"></div>
-      <input v-model="search" class="search" type="search" placeholder="Search this page" aria-label="Search this page" />
-      <button v-if="canCreate" class="btn primary" @click="openForm(null)">New</button>
+      <div class="crud-toolbar">
+        <input v-model="search" class="search" type="search" placeholder="Search records…" aria-label="Search this page" />
+        <button v-if="canCreate" class="btn primary" @click="openForm(null)">
+          <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16" aria-hidden="true">
+            <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
+          </svg>
+          New
+        </button>
+      </div>
     </div>
-    <p v-if="config.hint" class="hint">{{ config.hint }}</p>
     <div v-if="error" class="alert">{{ error }}</div>
 
     <DataTable
@@ -320,7 +329,9 @@ onMounted(load)
                     <tr v-for="(line, i) in form[f.key]" :key="i">
                       <td v-for="lf in f.fields" :key="lf.key">
                         <FieldInput v-model="line[lf.key]" :field="lf" :options="refOptions[lf.endpoint] || []"
-                          :aria-label="`${lf.label}, row ${i + 1}`" />
+                          :aria-label="`${lf.label}, row ${i + 1}`"
+                          :aria-describedby="lf.help ? `crud-help-${f.key}-${i}-${lf.key}` : undefined" />
+                        <small v-if="lf.help" :id="`crud-help-${f.key}-${i}-${lf.key}`" class="control-note">{{ lf.help }}</small>
                       </td>
                       <td class="actions"><button type="button" class="btn small danger" @click="form[f.key].splice(i, 1)">Remove</button></td>
                     </tr>
@@ -336,17 +347,24 @@ onMounted(load)
             <button type="button" class="btn small add-line" @click="addLine(f)">Add row</button>
           </div>
           <div v-else class="field" :class="{ wide: f.type === 'textarea' || f.type === 'multicheck', inline: f.type === 'checkbox' }">
-            <label :for="f.type === 'multicheck' ? undefined : `crud-field-${f.key}`">
+            <label :id="f.type === 'multicheck' ? `crud-label-${f.key}` : undefined"
+              :for="f.type === 'multicheck' ? undefined : `crud-field-${f.key}`">
               {{ f.label }}<span v-if="f.required" class="req" aria-hidden="true"> *</span>
             </label>
-            <FieldInput :id="`crud-field-${f.key}`" v-model="form[f.key]" :field="f" :options="refOptions[f.endpoint] || []" />
+            <small v-if="f.help" :id="`crud-help-${f.key}`" class="control-note">{{ f.help }}</small>
+            <FieldInput :id="`crud-field-${f.key}`" v-model="form[f.key]" :field="f" :options="refOptions[f.endpoint] || []"
+              :role="f.type === 'multicheck' ? 'group' : undefined"
+              :aria-labelledby="f.type === 'multicheck' ? `crud-label-${f.key}` : undefined"
+              :aria-describedby="f.help ? `crud-help-${f.key}` : undefined" />
           </div>
         </template>
       </div>
 
       <template #footer>
+        <small v-if="config.saveNote" id="crud-save-note" class="control-note">{{ config.saveNote }}</small>
         <button type="button" class="btn" @click="showForm = false">Cancel</button>
-        <button type="submit" class="btn primary" :disabled="saving">{{ saving ? 'Saving…' : 'Save' }}</button>
+        <button type="submit" class="btn primary" :disabled="saving"
+          :aria-describedby="config.saveNote ? 'crud-save-note' : undefined">{{ saving ? 'Saving…' : 'Save' }}</button>
       </template>
     </AppDialog>
   </div>

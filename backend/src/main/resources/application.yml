@@ -28,3 +28,7 @@ app:
     # Set to true and fill the spring.mail.* values in application-local.properties to send emails.
     enabled: false
     from: hrms@localhost
+  platform:
+    enabled: true
+    control-tower:
+      enabled: true

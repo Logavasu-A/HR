@@ -28,40 +28,37 @@ public class EmployeeBankService {
     public record Details(@Size(max = 120) String bankName, @Size(max = 60) String bankAccountNo) {}
 
     public static void checkDelegation(Set<String> permissions) {
-        var actor = CurrentUser.get();
         if (permissions != null &&
-                ((permissions.contains(READ) && !actor.permissions().contains(READ)) ||
-                 (permissions.contains(WRITE) && !actor.permissions().contains(WRITE)))) {
+                ((permissions.contains(READ) && !CurrentUser.hasExplicitPermission(READ)) ||
+                 (permissions.contains(WRITE) && !CurrentUser.hasExplicitPermission(WRITE)))) {
             throw ApiException.forbidden("You cannot administer a banking permission you do not hold.");
         }
     }
 
     @Transactional
     public Details read(long id, String path, String ip) {
-        var actor = CurrentUser.get();
-        if (!actor.permissions().contains(READ)) {
+        if (!CurrentUser.hasExplicitPermission(READ)) {
             throw ApiException.forbidden("Employee banking read permission is required.");
         }
         Details details = jdbc.query("""
                 select bank_name, bank_account_no from employee where tenant_id = ? and id = ?
-                """, (rs, row) -> new Details(rs.getString(1), rs.getString(2)), actor.tenantId(), id)
+                """, (rs, row) -> new Details(rs.getString(1), rs.getString(2)), CurrentUser.tenantId(), id)
                 .stream().findFirst().orElseThrow(() -> ApiException.notFound("Employee not found"));
-        audit.save(AuditLog.of(actor.username(), "READ_BANK_DETAILS", "GET", path, 200, ip));
+        audit.save(AuditLog.of(CurrentUser.usernameOrSystem(), "READ_BANK_DETAILS", "GET", path, 200, ip));
         return details;
     }
 
     @Transactional
     public void update(long id, Details details, String path, String ip) {
-        var actor = CurrentUser.get();
-        if (!actor.permissions().contains(WRITE)) {
+        if (!CurrentUser.hasExplicitPermission(WRITE)) {
             throw ApiException.forbidden("Employee banking write permission is required.");
         }
         int changed = jdbc.update("""
                 update employee
                    set bank_name = ?, bank_account_no = ?, updated_at = localtimestamp, updated_by = ?
                  where tenant_id = ? and id = ?
-                """, details.bankName(), details.bankAccountNo(), actor.username(), actor.tenantId(), id);
+                """, details.bankName(), details.bankAccountNo(), CurrentUser.usernameOrSystem(), CurrentUser.tenantId(), id);
         if (changed != 1) throw ApiException.notFound("Employee not found");
-        audit.save(AuditLog.of(actor.username(), "UPDATE_BANK_DETAILS", "PUT", path, 204, ip));
+        audit.save(AuditLog.of(CurrentUser.usernameOrSystem(), "UPDATE_BANK_DETAILS", "PUT", path, 204, ip));
     }
 }

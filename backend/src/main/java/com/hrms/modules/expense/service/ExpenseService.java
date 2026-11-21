@@ -52,6 +52,7 @@ public class ExpenseService {
     @Transactional
     public ExpenseClaim decide(Long id, ApprovalStatus newStatus, String remarks) {
         ExpenseClaim claim = claims.findById(id).orElseThrow(() -> ApiException.notFound("Expense claim not found"));
+        CurrentUser.rejectScopedSelfApproval(claim.getEmployee().getId());
         ApprovalStatus required = newStatus == ApprovalStatus.PAID ? ApprovalStatus.APPROVED : ApprovalStatus.PENDING;
         if (claim.getStatus() != required) {
             throw ApiException.badRequest("This claim is " + claim.getStatus().name().toLowerCase()

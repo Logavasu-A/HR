@@ -1,5 +1,8 @@
 package com.hrms.shared.security;
 
+import java.util.UUID;
+
+import com.hrms.modules.platform.OwnerWorkspacePrincipal;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -25,7 +28,47 @@ public final class CurrentUser {
         if (a != null && a.getPrincipal() instanceof AuthUser u) {
             return u.username();
         }
+        if (a != null && a.getPrincipal() instanceof OwnerWorkspacePrincipal owner) {
+            return owner.owner().username();
+        }
         return "system";
+    }
+
+    public static UUID tenantId() {
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof OwnerWorkspacePrincipal owner) {
+            return owner.tenantId();
+        }
+        return get().tenantId();
+    }
+
+    public static boolean hasExplicitPermission(String permission) {
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof OwnerWorkspacePrincipal owner) {
+            return owner.allowsBankDetails(permission);
+        }
+        var user = get();
+        return CompanyRecordScope.of(user.permissions()) == CompanyRecordScope.COMPANY
+                && user.permissions().contains(permission);
+    }
+
+    public static boolean isCompanyUser(Long id) {
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication != null && authentication.getPrincipal() instanceof AuthUser user && id.equals(user.id());
+    }
+
+    public static boolean isPlatformWorkspace() {
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication != null && authentication.getPrincipal() instanceof OwnerWorkspacePrincipal;
+    }
+
+    public static void rejectScopedSelfApproval(Long employeeId) {
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof AuthUser user &&
+                CompanyRecordScope.of(user.permissions()) != CompanyRecordScope.COMPANY &&
+                employeeId.equals(user.employeeId())) {
+            throw ApiException.forbidden("You cannot approve or reject your own request.");
+        }
     }
 
     /** The employee record linked to the signed-in user. */

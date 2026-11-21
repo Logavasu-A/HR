@@ -1,11 +1,11 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import api from '@/shared/api'
-import { auth, can } from '@/shared/auth'
+import { useWorkspace } from '@/shared/workspaceContext'
 import { errorMessage } from '@/shared/utils'
 
 const route = useRoute()
+const { api, can, explicit, path } = useWorkspace()
 const employeePath = `/core/employees/${encodeURIComponent(route.params.id)}`
 const signal = new AbortController()
 const employee = ref(null)
@@ -14,7 +14,7 @@ const loading = ref(true)
 const saving = ref(false)
 const error = ref('')
 const notice = ref('')
-const canEdit = computed(() => can('core:write') && auth.user?.permissions?.includes('employee-bank:write'))
+const canEdit = computed(() => can('core:write') && explicit('employee-bank:write'))
 
 async function load() {
   try {
@@ -57,7 +57,7 @@ onBeforeUnmount(() => signal.abort())
   <section>
     <div class="page-head">
       <h1>Employee bank details</h1>
-      <router-link class="btn" to="/employees">Back to employees</router-link>
+      <router-link class="btn" :to="path('/employees')">Back to employees</router-link>
     </div>
     <p v-if="loading" role="status">Loading bank details…</p>
     <p v-if="error" class="alert" role="alert">{{ error }}</p>

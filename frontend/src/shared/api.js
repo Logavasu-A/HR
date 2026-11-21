@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { auth, clearSession } from '@/shared/auth'
+import { installFinanceAccess } from '@/shared/financeAccess'
 
 const api = axios.create({ baseURL: '/api' })
 
@@ -18,12 +19,13 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && error.config?.url !== '/auth/login'
         && auth.token && requestToken === `Bearer ${auth.token}`) {
       clearSession()
-      if (location.pathname !== '/login') {
-        location.assign('/login')
+      if (location.pathname !== '/login' && location.pathname !== '/platform/login') {
+        location.assign(location.pathname.startsWith('/platform') ? '/platform/login' : '/login')
       }
     }
     return Promise.reject(error)
   },
 )
 
+installFinanceAccess(api)
 export default api

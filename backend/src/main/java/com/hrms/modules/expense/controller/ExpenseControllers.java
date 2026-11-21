@@ -1,5 +1,7 @@
 package com.hrms.modules.expense.controller;
 
+import com.hrms.shared.security.CurrentUser;
+
 import com.hrms.modules.expense.model.EmployeeAdvance;
 import com.hrms.modules.expense.model.ExpenseClaim;
 import com.hrms.modules.expense.model.ExpenseClaimLine;
@@ -125,6 +127,7 @@ public class ExpenseControllers {
 
         private EmployeeAdvance setStatus(Long id, ApprovalStatus status) {
             EmployeeAdvance advance = load(id);
+            CurrentUser.rejectScopedSelfApproval(advance.getEmployee().getId());
             ApprovalStatus required = status == ApprovalStatus.PAID ? ApprovalStatus.APPROVED : ApprovalStatus.PENDING;
             if (advance.getStatus() != required) {
                 throw ApiException.badRequest("Advance status must be " + required.name().toLowerCase(java.util.Locale.ROOT));

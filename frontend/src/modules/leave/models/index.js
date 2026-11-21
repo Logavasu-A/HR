@@ -31,7 +31,6 @@ export default [
   },
   {
     path: '/leave-allocations', group: 'Leave', title: 'Leave allocations', perm: 'leave', endpoint: '/leave/allocations',
-    hint: 'An allocation gives an employee a number of days of one leave type for a period, usually a year.',
     columns: [
       { key: 'employee.fullName', label: 'Employee' },
       { key: 'leaveType.name', label: 'Type' },
@@ -66,7 +65,6 @@ export default [
   },
   {
     path: '/holiday-lists', group: 'Leave', title: 'Holiday lists', perm: 'leave', endpoint: '/leave/holiday-lists',
-    hint: 'Holidays and weekly offs are skipped when counting leave days and salary working days.',
     columns: [
       { key: 'name', label: 'Name' },
       { key: 'fromDate', label: 'From' },
@@ -78,7 +76,10 @@ export default [
       { key: 'name', label: 'Name', type: 'text', required: true },
       { key: 'fromDate', label: 'From', type: 'date', required: true },
       { key: 'toDate', label: 'To', type: 'date', required: true },
-      { key: 'weeklyOffs', label: 'Weekly offs (e.g. SATURDAY,SUNDAY)', type: 'text' },
+      {
+        key: 'weeklyOffs', label: 'Weekly offs (e.g. SATURDAY,SUNDAY)', type: 'text',
+        help: 'Holidays and weekly offs are skipped when counting leave days and salary working days.',
+      },
       { key: 'defaultList', label: 'Default list for employees without one', type: 'checkbox' },
       {
         key: 'holidays', label: 'Holidays', type: 'lines',

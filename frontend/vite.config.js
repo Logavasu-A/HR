@@ -11,9 +11,10 @@ export default defineConfig({
   },
   server: {
     port: 5173,
-    // The isolation frontend can use the separate loopback backend without changing the default proxy.
+    // Both company sign-in and Super Admin use the verified local restore by default.
+    // Set HRMS_ISOLATION_FRONTEND=0 to inspect the legacy backend on port 8080.
     proxy: {
-      '/api': process.env.HRMS_ISOLATION_FRONTEND === '1' ? 'http://127.0.0.1:8081' : 'http://localhost:8080',
+      '/api': process.env.HRMS_ISOLATION_FRONTEND === '0' ? 'http://localhost:8080' : 'http://127.0.0.1:8081',
     },
   },
 })

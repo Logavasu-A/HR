@@ -3,6 +3,7 @@ package com.hrms.shared.security;
 import java.util.Set;
 import java.util.function.Supplier;
 
+import com.hrms.modules.platform.OwnerWorkspacePrincipal;
 import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.authorization.AuthorizationManager;
 import org.springframework.security.core.Authentication;
@@ -21,17 +22,23 @@ import org.springframework.stereotype.Component;
 @Component
 public class PermissionManager implements AuthorizationManager<RequestAuthorizationContext> {
 
-    private static final Set<String> OPEN_MODULES = Set.of("auth", "me", "notifications");
+    private static final Set<String> OPEN_MODULES = Set.of("auth", "me", "notifications", "sensitive");
     private static final Set<String> APPROVE_VERBS = Set.of("approve", "reject", "submit", "pay");
 
     @Override
     public AuthorizationDecision check(Supplier<Authentication> authentication, RequestAuthorizationContext context) {
         Authentication auth = authentication.get();
+        if (auth != null && auth.getPrincipal() instanceof OwnerWorkspacePrincipal) {
+            String[] parts = context.getRequest().getServletPath().split("/");
+            return new AuthorizationDecision(parts.length >= 3 && OwnerWorkspacePrincipal.supports(parts[2]));
+        }
         if (auth == null || !(auth.getPrincipal() instanceof AuthUser user)) {
             return new AuthorizationDecision(false);
         }
         // "", "api", module, ...
         String[] seg = context.getRequest().getRequestURI().split("/");
+        var scope = CompanyRecordScope.of(user.permissions());
+        if (scope == CompanyRecordScope.DENY) return new AuthorizationDecision(false);
         if (seg.length < 3 || OPEN_MODULES.contains(seg[2])) {
             return new AuthorizationDecision(true);
         }
@@ -45,6 +52,11 @@ public class PermissionManager implements AuthorizationManager<RequestAuthorizat
         } else {
             action = "write";
         }
-        return new AuthorizationDecision(user.can(module + ":" + action));
+        if (scope != CompanyRecordScope.COMPANY) {
+            if (context.getRequest().getServletPath().contains("/bank-details") ||
+                    ("approve".equals(action) && !"approve".equals(seg[seg.length - 1]) &&
+                     !"reject".equals(seg[seg.length - 1]))) return new AuthorizationDecision(false);
+        }
+        return new AuthorizationDecision(scope.allows(module, action) && user.can(module + ":" + action));
     }
 }

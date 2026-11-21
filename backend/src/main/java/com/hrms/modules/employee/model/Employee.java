@@ -19,6 +19,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.NotFound;
+import org.hibernate.annotations.NotFoundAction;
 
 @Entity
 @Table(name = "employee")
@@ -78,6 +80,7 @@ public class Employee extends BaseEntity {
 
     @ManyToOne
     @JoinColumn(name = "reports_to_id")
+    @NotFound(action = NotFoundAction.IGNORE) // RLS can hide the reporting manager from a scoped reader.
     @JsonIgnoreProperties({"reportsTo", "holidayList", "department", "designation", "branch",
             "address", "dateOfBirth", "gender", "phone"})
     private Employee reportsTo;

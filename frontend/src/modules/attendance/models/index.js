@@ -3,7 +3,7 @@ import { opts, employeeField } from '@/shared/modelHelpers'
 export default [
   {
     path: '/attendance', group: 'Attendance', title: 'Attendance records', perm: 'attendance', endpoint: '/attendance/records',
-    hint: 'Shows the last two months. Saving a record for a date that already has one replaces it.',
+    saveNote: 'Saving a record for a date that already has one replaces it.',
     columns: [
       { key: 'attendanceDate', label: 'Date' },
       { key: 'employee.fullName', label: 'Employee' },

@@ -31,6 +31,11 @@ import com.hrms.modules.recruitment.repository.JobOpeningRepo;
 import com.hrms.modules.recruitment.repository.JobApplicantRepo;
 
 import lombok.RequiredArgsConstructor;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.ObjectProvider;
+import com.hrms.shared.security.CurrentUser;
+import com.hrms.shared.security.FinanceControls;
 
 /** Numbers and chart series for the home screen. */
 @RestController
@@ -47,9 +52,10 @@ public class DashboardController {
     private final PayrollRunRepo payrollRuns;
     private final JobOpeningRepo openings;
     private final JobApplicantRepo applicants;
+    private final ObjectProvider<FinanceControls> finance;
 
     @GetMapping("/summary")
-    public Map<String, Object> summary() {
+    public Map<String, Object> summary(HttpServletRequest request, HttpServletResponse response) {
         LocalDate today = LocalDate.now();
         List<Employee> all = employees.findAll();
         List<Employee> active = all.stream().filter(e -> e.getStatus() == Employee.Status.ACTIVE).toList();
@@ -130,14 +136,20 @@ public class DashboardController {
         out.put("attendanceToday", todayCounts);
 
         // ---- payroll cost per month ----
-        List<PayrollRun> runs = new ArrayList<>(
-                payrollRuns.findAllByOrderByPeriodYearDescPeriodMonthDesc(PageRequest.of(0, MONTHS)).getContent());
-        java.util.Collections.reverse(runs);
+        var controls = finance.getIfAvailable();
+        boolean payrollAllowed = controls == null || ((CurrentUser.isPlatformWorkspace()
+                || CurrentUser.get().can("payroll:read")) && controls.unlocked(request));
+        if (controls != null) response.setHeader("Cache-Control", "no-store");
+        List<PayrollRun> runs = payrollAllowed ? new ArrayList<>(
+                payrollRuns.findAllByOrderByPeriodYearDescPeriodMonthDesc(PageRequest.of(0, MONTHS)).getContent())
+                : List.of();
+        if (payrollAllowed) java.util.Collections.reverse(runs);
         Map<String, Object> payroll = new LinkedHashMap<>();
         payroll.put("labels", runs.stream()
                 .map(r -> YearMonth.of(r.getPeriodYear(), r.getPeriodMonth()).toString()).toList());
         payroll.put("net", runs.stream().map(r -> r.getTotalNet() == null ? BigDecimal.ZERO : r.getTotalNet()).toList());
         out.put("payroll", payroll);
+        out.put("payrollLocked", !payrollAllowed);
 
         // ---- birthdays in the next 30 days ----
         List<Map<String, Object>> birthdays = new ArrayList<>();

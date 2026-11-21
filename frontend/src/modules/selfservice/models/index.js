@@ -30,7 +30,6 @@ export default [
   {
     path: '/my/attendance', group: 'My space', title: 'My attendance', endpoint: '/me/attendance',
     create: false, edit: false, remove: false,
-    hint: 'This month. Check in and out from the My space home screen.',
     columns: [
       { key: 'attendanceDate', label: 'Date' },
       { key: 'status', label: 'Status', badge: true },

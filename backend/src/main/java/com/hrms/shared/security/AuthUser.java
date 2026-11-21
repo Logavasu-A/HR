@@ -8,6 +8,10 @@ public record AuthUser(Long id, String username, Long employeeId, String role, S
                        UUID tenantId, UUID sessionId) {
 
     public boolean can(String permission) {
+        return grants(permissions, permission);
+    }
+
+    public static boolean grants(Set<String> permissions, String permission) {
         if (permissions.contains("*") || permissions.contains(permission)) {
             return true;
         }

@@ -13,6 +13,7 @@ import org.springframework.web.util.ContentCachingResponseWrapper;
 import com.hrms.modules.admin.model.AppUser;
 import com.hrms.modules.admin.repository.UserRepo;
 import com.hrms.modules.audit.interceptor.AuditInterceptor;
+import com.hrms.modules.audit.interceptor.AuditCapture;
 import com.hrms.shared.tenancy.CompanyTenancy;
 import com.hrms.shared.tenancy.TenantDatabaseScope;
 
@@ -29,14 +30,16 @@ public class JwtFilter extends OncePerRequestFilter {
     private final CompanySessions sessions;
     private final TenantDatabaseScope tenantScope;
     private final AuditInterceptor audit;
+    private final AuditCapture capture;
 
     public JwtFilter(JwtService jwt, UserRepo users, CompanySessions sessions, TenantDatabaseScope tenantScope,
-                     AuditInterceptor audit) {
+                     AuditInterceptor audit, AuditCapture capture) {
         this.jwt = jwt;
         this.users = users;
         this.sessions = sessions;
         this.tenantScope = tenantScope;
         this.audit = audit;
+        this.capture = capture;
     }
 
     @Override
@@ -73,8 +76,10 @@ public class JwtFilter extends OncePerRequestFilter {
     private void inDatabaseScope(HttpServletRequest request, HttpServletResponse response, FilterChain chain,
                                  JwtService.CompanyToken token) throws IOException, ServletException {
         var buffered = new ContentCachingResponseWrapper(response);
+        if (capture != null) capture.start(request, buffered);
+        int outcome = 500;
         try {
-            tenantScope.transaction(token.tenantId(), status -> {
+            tenantScope.transaction(token.tenantId(), token.userId(), status -> {
                 try {
                     authenticated(request, buffered, chain, token);
                 } catch (IOException | ServletException e) {
@@ -83,11 +88,16 @@ public class JwtFilter extends OncePerRequestFilter {
                 if (buffered.getStatus() >= 400) status.setRollbackOnly();
                 return null;
             });
+            outcome = buffered.getStatus();
         } catch (RequestFailure failure) {
             if (failure.getCause() instanceof IOException io) throw io;
             throw (ServletException) failure.getCause();
         } finally {
             audit.flushRejected(request, token.tenantId());
+            if (capture != null && SecurityContextHolder.getContext().getAuthentication() != null
+                    && SecurityContextHolder.getContext().getAuthentication().getPrincipal() instanceof AuthUser user) {
+                capture.company(user, request, outcome);
+            }
         }
         buffered.copyBodyToResponse();
     }
@@ -106,6 +116,8 @@ public class JwtFilter extends OncePerRequestFilter {
 
     private void signIn(AppUser u, JwtService.CompanyToken token) {
         Set<String> perms = Set.copyOf(u.getRole().getPermissions());
+        var scope = CompanyRecordScope.of(perms);
+        if (scope == CompanyRecordScope.DENY || (!tenantScope.abacEnabled() && scope != CompanyRecordScope.COMPANY)) return;
         AuthUser principal = new AuthUser(
                 u.getId(),
                 u.getUsername(),
