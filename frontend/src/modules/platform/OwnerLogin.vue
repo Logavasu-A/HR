@@ -114,9 +114,9 @@ async function signIn() {
 </template>
 <style scoped>
 .login {
-  min-height: 100vh;
+  min-height: 100dvh;
   display: grid;
-  grid-template-columns: minmax(340px, 5fr) 7fr;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
   color: var(--platform-text);
   background: var(--platform-background);
 }
@@ -141,7 +141,7 @@ input[type='text'], input[type='password'] {
 
 .pw { position: relative; }
 .pw input { padding-right: 64px; }
-.eye { position: absolute; right: var(--space-8); top: 50%; transform: translateY(-50%); height: var(--platform-control-small); padding: 0 var(--space-8); border: 0; background: transparent; color: var(--platform-accent); font: inherit; cursor: pointer; border-radius: var(--platform-radius-small); }
+.eye { position: absolute; right: var(--space-8); top: 50%; transform: translateY(-50%); min-width: var(--platform-control-small); height: var(--platform-control-small); padding: 0 var(--space-8); border: 0; background: transparent; color: var(--platform-accent); font: inherit; cursor: pointer; border-radius: var(--platform-radius-small); }
 .hint { margin: 8px 0 0; font-size: 13px; }
 .warn { color: var(--warn-text); }
 .check { display: flex; align-items: center; gap: 10px; font-weight: 400; margin: 18px 0 0; color: var(--muted); cursor: pointer; }

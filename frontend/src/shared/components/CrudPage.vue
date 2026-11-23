@@ -279,7 +279,7 @@ onMounted(load)
       :format-cell="cell"
       :badge-class="badgeClass"
       :is-short="isShort"
-      :empty-icon="rows.length ? '🔍' : '📭'"
+      :empty-icon="rows.length ? 'search' : 'records'"
       :empty-text="rows.length ? 'Nothing matches the search.' : 'No records yet.'"
       :aria-label="config.title"
     >
@@ -316,7 +316,7 @@ onMounted(load)
             <label>{{ f.label }}</label>
             <div class="table-card table-card--inline">
               <div class="table-wrapper table-wrapper--inline" tabindex="0" role="region" :aria-label="f.label">
-                <table class="data-table data-table--compact lines">
+                <table class="data-table data-table--compact lines responsive-table" role="table">
                   <thead>
                     <tr>
                       <th v-for="lf in f.fields" :key="lf.key" scope="col" :class="{ num: lf.type === 'number' }">
@@ -325,15 +325,15 @@ onMounted(load)
                       <th scope="col" class="actions-col">Actions</th>
                     </tr>
                   </thead>
-                  <tbody>
-                    <tr v-for="(line, i) in form[f.key]" :key="i">
-                      <td v-for="lf in f.fields" :key="lf.key">
+                  <tbody role="rowgroup">
+                    <tr v-for="(line, i) in form[f.key]" :key="i" role="row">
+                      <td v-for="lf in f.fields" :key="lf.key" :data-label="lf.label" role="cell" :class="{ num: lf.type === 'number' }">
                         <FieldInput v-model="line[lf.key]" :field="lf" :options="refOptions[lf.endpoint] || []"
                           :aria-label="`${lf.label}, row ${i + 1}`"
                           :aria-describedby="lf.help ? `crud-help-${f.key}-${i}-${lf.key}` : undefined" />
                         <small v-if="lf.help" :id="`crud-help-${f.key}-${i}-${lf.key}`" class="control-note">{{ lf.help }}</small>
                       </td>
-                      <td class="actions"><button type="button" class="btn small danger" @click="form[f.key].splice(i, 1)">Remove</button></td>
+                      <td class="actions" role="cell"><button type="button" class="btn small danger" @click="form[f.key].splice(i, 1)">Remove</button></td>
                     </tr>
                     <tr v-if="!form[f.key].length" class="table-state-row">
                       <td :colspan="f.fields.length + 1" class="empty">

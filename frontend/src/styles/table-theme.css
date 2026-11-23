@@ -7,20 +7,19 @@
 
 :root {
   /* Table Header */
-  --table-header-bg: var(--table-head-bg);
+  --table-header-bg: color-mix(in srgb, var(--table-head-bg) 48%, var(--card-bg));
   --table-header-color: var(--text-2);
   --table-header-font-size: 12px;
   --table-header-font-weight: 600;
   --table-header-height: 46px;
-  --table-header-hover-bg: var(--row-hover);
+  --table-header-hover-bg: color-mix(in srgb, var(--primary) 5%, var(--table-header-bg));
 
   /* Table Body */
   --table-body-bg: var(--card-bg);
   --table-body-color: var(--text);
-  --table-body-font-size: 13.5px;
+  --table-body-font-size: .875rem;
   --table-body-font-weight: 400;
-  --table-row-hover: var(--row-hover);
-  --table-row-alternate: var(--card-bg);
+  --table-row-hover: color-mix(in srgb, var(--primary) 4%, var(--card-bg));
   --table-row-selected: var(--primary-tint);
   --table-row-selected-accent: var(--primary);
 
@@ -28,10 +27,10 @@
   --table-border-color: var(--border);
   --table-border-strong: var(--border-strong);
   --table-border-radius: 10px;
-  --table-shadow: var(--shadow-card);
+  --table-divider-color: color-mix(in srgb, var(--table-border-color) 72%, var(--card-bg));
 
   /* Dimensions */
-  --table-row-height: 48px;
+  --table-row-height: 52px;
   --table-cell-inline-padding: 16px;
   --table-cell-padding: 12px var(--table-cell-inline-padding);
   --table-compact-row-height: 40px;
@@ -48,17 +47,16 @@
 
 /* ---------- Outer Card Container (holds scroll viewport + pinned footer) ---------- */
 .table-card {
+  container: table-card / inline-size;
   background: var(--table-body-bg);
   border: 1px solid var(--table-border-color);
   border-radius: var(--table-border-radius);
-  box-shadow: var(--table-shadow);
   overflow: hidden;
   width: 100%;
 }
 
 .table-card--inline {
   margin-bottom: 10px;
-  box-shadow: none;
 }
 
 /* ---------- Scroll Viewport (Vertical + Horizontal, Sticky Header Anchor) ---------- */
@@ -79,6 +77,12 @@
 
 .table-wrapper--auto {
   max-height: none;
+}
+
+.table-wrapper:where(:not(.table-card .table-wrapper)) {
+  border-radius: var(--table-border-radius);
+  outline: 1px solid var(--table-border-color);
+  outline-offset: -1px;
 }
 
 .table-wrapper:focus-visible {
@@ -120,6 +124,10 @@ table,
   color: var(--table-body-color);
   font-size: var(--table-body-font-size);
   font-weight: var(--table-body-font-weight);
+}
+
+table :is(th + th, td + td) {
+  border-inline-start: 1px solid var(--table-divider-color);
 }
 
 /* ---------- Sticky Header ---------- */
@@ -165,23 +173,16 @@ table thead th,
   gap: 6px;
 }
 
-.num .sort-indicator {
-  order: -1;
-}
-
 .sort-indicator {
-  display: inline-grid;
-  place-items: center;
-  inline-size: 1.25em;
+  display: block;
+  inline-size: .75rem;
+  block-size: .75rem;
   flex-shrink: 0;
-  font-size: 10px;
-  line-height: 1;
   color: var(--text-muted);
-  transition: opacity 0.14s ease, color 0.14s ease;
+  transition: color 0.14s ease;
 }
 
 .data-table thead th.sorted .sort-indicator {
-  opacity: 1;
   color: var(--primary);
 }
 
@@ -193,14 +194,10 @@ table tbody tr,
   transition: background-color 0.12s ease;
 }
 
-table tbody tr:nth-child(even),
-.data-table tbody tr:nth-child(even) {
-  background: var(--table-row-alternate);
-}
-
-table tbody tr:hover,
-.data-table tbody tr:hover {
-  background: var(--table-row-hover);
+@media (hover: hover) {
+  table tbody tr:hover {
+    background: var(--table-row-hover);
+  }
 }
 
 table tbody tr.selected,
@@ -216,7 +213,7 @@ table tbody tr.selected td:first-child,
 table tbody td,
 .data-table tbody td {
   padding: var(--table-cell-padding);
-  border-bottom: 1px solid var(--table-border-color);
+  border-bottom: 1px solid var(--table-divider-color);
   vertical-align: middle;
   color: var(--table-body-color);
 }
@@ -229,19 +226,18 @@ table tbody tr:last-child td,
 /* Total / summary rows (e.g., Payslip modal) */
 table tbody tr.total,
 .data-table tbody tr.total {
-  background: var(--table-row-alternate);
+  background: var(--table-header-bg);
 }
 
 table tbody tr.total td,
 .data-table tbody tr.total td {
   font-weight: 600;
-  border-top: 2px solid var(--table-border-strong);
+  border-top: 1px solid var(--table-border-strong);
   border-bottom: none;
 }
 
 /* Empty & loading state rows */
 .data-table tbody tr.table-state-row,
-.data-table tbody tr.table-state-row:nth-child(even),
 .data-table tbody tr.table-state-row:hover {
   background: var(--table-body-bg);
   height: auto;
@@ -249,7 +245,7 @@ table tbody tr.total td,
 
 /* Alignment & utility classes */
 :where(table th, table td) {
-  text-align: left;
+  text-align: start;
 }
 
 :where(table td) {
@@ -258,7 +254,7 @@ table tbody tr.total td,
 
 th.num,
 td.num {
-  text-align: right;
+  text-align: end;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -276,17 +272,9 @@ table :is(th, td).table-check-col {
 
 th.actions-col,
 td.actions {
-  text-align: right;
+  text-align: end;
   white-space: nowrap;
   width: 56px;
-}
-
-td.actions .btn {
-  margin-left: 6px;
-}
-
-td.actions .btn:first-child {
-  margin-left: 0;
 }
 
 /* ---------- Three-Dot Row Action Menu ---------- */
@@ -515,16 +503,33 @@ table tbody tr:has(.action-menu-btn.open),
   position: sticky;
   inset-inline-start: 0;
   max-inline-size: 100cqi;
-  padding: 40px 16px;
+  padding: clamp(1.75rem, 4vw, 2.5rem) var(--space-16);
   text-align: center;
   color: var(--muted);
 }
 
-.empty-icon {
-  font-size: 28px;
-  display: block;
-  margin-bottom: 6px;
-  opacity: 0.65;
+.table-state-icon {
+  display: grid;
+  place-items: center;
+  inline-size: 2rem;
+  block-size: 2rem;
+  margin: 0 auto var(--space-8);
+  border-radius: var(--radius-sm);
+  background: var(--table-header-bg);
+  color: var(--muted);
+}
+
+.table-state-icon svg {
+  inline-size: 1rem;
+  block-size: 1rem;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .table-state-icon--loading svg { animation: table-loading-spin .85s linear infinite; }
+}
+
+@keyframes table-loading-spin {
+  to { transform: rotate(360deg); }
 }
 
 /* Compact tables (modal line-items & payslip tables) */
@@ -545,11 +550,7 @@ table.lines tbody td {
 }
 
 table.lines td > :is(input:not(.check), select, textarea) {
-  min-inline-size: 7rem;
-}
-
-table.lines td > :is(input[type="date"], select) {
-  min-inline-size: 8rem;
+  min-inline-size: 0;
 }
 
 table.lines input[type="number"] {
@@ -561,21 +562,132 @@ table.lines input[type="number"] {
 .table-card > .pagination-bar {
   border-top: 1px solid var(--table-border-color);
   border-radius: 0;
+  padding-inline: var(--table-cell-inline-padding);
+  background: var(--table-body-bg);
 }
 
-/* ---------- Responsive Adjustments ---------- */
-@media (max-width: 1024px) {
-  :root {
-    --table-cell-inline-padding: 14px;
-    --table-cell-padding: 10px var(--table-cell-inline-padding);
+.table-card > .pagination-bar .page-size {
+  padding-inline-end: var(--space-32);
+}
+
+/* ---------- Responsive tables ---------- */
+.table-wrapper { max-inline-size: 100%; min-inline-size: 0; }
+.data-table.responsive-table { min-inline-size: 0; }
+.data-table.lines { table-layout: fixed; }
+.slip-cols .data-table th.num { width: 1%; }
+.slip-cols .data-table td:not(.num) { white-space: normal; overflow-wrap: anywhere; }
+.data-table.responsive-table th { overflow-wrap: normal; }
+.data-table.responsive-table th:not(.actions-col) { white-space: normal; }
+.data-table.responsive-table td:not(.num, .actions) { white-space: normal; overflow-wrap: anywhere; }
+.data-table.responsive-table .th-inner { max-inline-size: 100%; overflow-wrap: normal; }
+.data-table.responsive-table .th-inner > :first-child { min-inline-size: 0; }
+.table-cell-value { display: contents; }
+.table-date { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.table-select-target { display: inline-flex; align-items: center; gap: var(--space-8); cursor: pointer; }
+.table-mobile-controls {
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-8);
+  padding: var(--space-12); border-bottom: 1px solid var(--table-border-color);
+}
+.table-mobile-controls .table-select-target { min-block-size: var(--tap-target); }
+
+@media screen and (width < 1025px) {
+  /* Let the page or dialog own vertical scrolling. Wide tables can still pan locally. */
+  .table-wrapper {
+    max-block-size: none;
+    overscroll-behavior-y: auto;
   }
 }
 
-@media (max-width: 800px) {
-  :root {
-    --table-cell-inline-padding: 12px;
-    --table-max-height: 60vh;
+@media screen and (width < 768px) {
+  .table-card:has(.data-table--records) {
+    --table-cell-inline-padding: calc(var(--space-8) + var(--space-12) + 1px);
   }
+  .table-mobile-controls { padding-inline: var(--table-cell-inline-padding); }
+  .data-table.responsive-table,
+  .data-table.responsive-table tbody { display: block; }
+  .data-table.responsive-table thead {
+    position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+  }
+  .data-table.responsive-table thead :is(input, [tabindex]) { visibility: hidden; }
+  .data-table.responsive-table tbody tr {
+    display: grid; grid-template-columns: minmax(0, 1fr); height: auto;
+    padding: var(--space-8) var(--space-12); border-bottom: 1px solid var(--table-border-color);
+  }
+  .data-table.responsive-table tbody tr:last-child { border-bottom: 0; }
+  .data-table.responsive-table tbody td {
+    display: block; inline-size: auto; min-inline-size: 0; padding: var(--space-4) 0;
+    border: 0; text-align: start; white-space: normal; overflow-wrap: anywhere;
+  }
+  .data-table.responsive-table tbody td[data-label]::before {
+    content: attr(data-label); display: block; font-size: .8125rem; font-weight: 600; color: var(--table-header-color);
+  }
+  .data-table.responsive-table tbody td.empty { text-align: center; }
+  .data-table.responsive-table tbody td .badge { white-space: normal; }
+  .data-table.responsive-table .table-select-target { min-block-size: var(--tap-target); min-inline-size: var(--tap-target); }
+  .data-table.responsive-table.lines td > :is(input:not(.check), select, textarea) { min-inline-size: 0; }
+  .data-table--records tbody { background: var(--page-bg); }
+  .data-table.responsive-table.data-table--records tbody tr:not(.table-state-row) {
+    margin: var(--space-8);
+    padding: var(--space-8) var(--space-12);
+    border: 1px solid var(--table-border-color);
+    border-radius: var(--radius-sm);
+  }
+  .data-table--records .table-cell-value {
+    display: block;
+    align-self: stretch;
+    min-inline-size: 0;
+    padding-inline-start: var(--space-8);
+    border-inline-start: 1px solid var(--table-divider-color);
+  }
+  .data-table.responsive-table.data-table--records tbody td[data-label] {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+    align-items: start;
+    gap: var(--space-8);
+    padding-block: var(--space-8);
+    font-size: .875rem;
+  }
+  .data-table.responsive-table:is(.data-table--records, .lines) tbody td + td[data-label] {
+    border-block-start: 1px solid var(--table-divider-color);
+  }
+  .data-table--records td.num .table-cell-value { text-align: end; }
+  .data-table.responsive-table.data-table--records tbody td.actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: var(--space-8);
+    border-block-start: 1px solid var(--table-divider-color);
+  }
+  .data-table.responsive-table tbody td.actions { text-align: end; }
+  .data-table.responsive-table tbody td.actions:empty { display: none; }
+}
+
+@media (min-width: 768px) {
+  .table-mobile-controls { display: none; }
+  .table-card:has(.table-date) { --table-narrow-inline-padding: .375rem; }
+  .responsive-table th.actions-col,
+  .responsive-table td.actions {
+    position: sticky;
+    inset-inline-end: 0;
+  }
+  .responsive-table th.actions-col { z-index: 11; }
+  .responsive-table td.actions { z-index: 1; background-color: inherit; }
+
+  @container (width < 48rem) {
+    .responsive-table:not(.lines, .company-directory-table) {
+      --table-cell-padding: var(--space-12) var(--table-narrow-inline-padding, var(--space-8));
+    }
+    .responsive-table th { letter-spacing: .02em; }
+    .responsive-table .th-inner { gap: var(--space-4); }
+    .responsive-table .sort-indicator { inline-size: .625rem; block-size: .625rem; }
+  }
+  @container table-card (width < 48rem) {
+    .table-card > .pagination-bar { padding-inline: var(--table-narrow-inline-padding, var(--space-8)); }
+  }
+}
+
+@media (768px <= width < 1025px) {
+  :root { --table-cell-inline-padding: .625rem; }
 }
 
 /* ---------- Print Support (Payslip PDF Export) ---------- */

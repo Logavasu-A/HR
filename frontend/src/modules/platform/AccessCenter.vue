@@ -121,33 +121,35 @@ onMounted(() => run(async () => {
           </div>
         </div>
         <div class="table-card"><div class="access-table table-wrapper" tabindex="0" role="region" aria-label="Platform accounts">
-          <table class="data-table">
-            <thead><tr><th scope="col">Account</th><th scope="col">Status</th><th scope="col">Role</th><th scope="col">Action</th></tr></thead>
-            <tbody>
-              <tr v-for="account in filteredAccounts" :key="account.id">
-                <td><strong>{{ account.username }}</strong></td>
-                <td><span class="badge" :class="account.active ? 'active' : 'inactive'">{{ account.active ? 'Active' : 'Inactive' }}</span></td>
-                <td>{{ account.role ? pretty(account.role) : 'Unassigned' }}</td>
-                <td><button v-if="editable(account)" class="btn small" type="button" :disabled="busy"
+          <table class="data-table responsive-table data-table--records" role="table">
+            <thead><tr><th scope="col">Account</th><th scope="col">Status</th><th scope="col">Role</th><th scope="col" class="actions-col">Actions</th></tr></thead>
+            <tbody role="rowgroup">
+              <tr v-for="account in filteredAccounts" :key="account.id" role="row">
+                <td data-label="Account" role="cell"><strong class="table-cell-value">{{ account.username }}</strong></td>
+                <td data-label="Status" role="cell"><div class="table-cell-value"><span class="badge" :class="account.active ? 'active' : 'inactive'">{{ account.active ? 'Active' : 'Inactive' }}</span></div></td>
+                <td data-label="Role" role="cell"><span class="table-cell-value">{{ account.role ? pretty(account.role) : 'Unassigned' }}</span></td>
+                <td class="actions" role="cell"><button v-if="editable(account)" class="btn small" type="button" :disabled="busy"
                   :aria-label="`Change role for ${account.username}`" @click="edit(account)">Change role</button></td>
               </tr>
               <tr v-if="!filteredAccounts.length" class="table-state-row">
-                <td colspan="4"><div class="table-state-message">{{ busy ? 'Loading accounts…' : 'No accounts match these filters.' }}</div></td>
+                <td class="empty" colspan="4"><div class="table-state-message">{{ busy ? 'Loading accounts…' : 'No accounts match these filters.' }}</div></td>
               </tr>
             </tbody>
           </table>
         </div></div>
         <form v-if="selected" class="access-form" @submit.prevent="submit">
           <h3>Change role for {{ selected.username }}</h3>
-          <div class="field"><label for="platform-role">Role</label>
-            <select id="platform-role" v-model="role">
-              <option value="UNASSIGNED">Unassigned</option>
-              <option value="PLATFORM_ADMINISTRATOR">Platform Administrator</option>
-              <option v-if="session.role === 'GLOBAL_SUPER_ADMIN'" value="SECURITY_ADMINISTRATOR">Security Administrator</option>
-            </select>
-          </div>
-          <div class="field"><label for="platform-reason">Reason for change</label>
-            <input id="platform-reason" v-model.trim="reason" maxlength="200" required />
+          <div class="form-grid">
+            <div class="field"><label for="platform-role">Role</label>
+              <select id="platform-role" v-model="role">
+                <option value="UNASSIGNED">Unassigned</option>
+                <option value="PLATFORM_ADMINISTRATOR">Platform Administrator</option>
+                <option v-if="session.role === 'GLOBAL_SUPER_ADMIN'" value="SECURITY_ADMINISTRATOR">Security Administrator</option>
+              </select>
+            </div>
+            <div class="field"><label for="platform-reason">Reason for change</label>
+              <input id="platform-reason" v-model.trim="reason" maxlength="200" required />
+            </div>
           </div>
           <div class="access-actions">
             <button class="btn primary" :disabled="busy || !reason || role === (selected.role || 'UNASSIGNED')">Confirm role change</button>
@@ -175,14 +177,14 @@ onMounted(() => run(async () => {
 .access-card { padding: var(--platform-card-padding); margin-bottom: var(--space-16); }
 .access-card h2, .access-form h3 { margin: 0 0 12px; }
 .access-table-heading { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
-.access-filters { display: grid; grid-template-columns: minmax(0, 320px) minmax(0, 160px); gap: 12px; margin-bottom: 14px; }
+.access-filters { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; margin-bottom: 14px; }
 .access-filters .field { margin: 0; min-width: 0; }
 .access-filters input, .access-filters select { inline-size: 100%; min-inline-size: 0; }
-@media (max-width: 560px) {
-  .access-filters { grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 768px) {
+  .access-filters { grid-template-columns: minmax(0, 20rem) minmax(0, 10rem); }
 }
-.access-table table { min-width: 440px; }
 .access-form { max-width: 620px; margin-top: var(--space-16); padding: var(--platform-card-padding); border: 1px solid var(--platform-border); border-radius: var(--platform-radius); }
+.access-form .form-grid { margin-bottom: var(--space-16); }
 .access-activity { padding: 0; margin: 0; list-style: none; }
 .access-activity li { padding: 12px 0; border-top: 1px solid var(--line); overflow-wrap: anywhere; }
 </style>

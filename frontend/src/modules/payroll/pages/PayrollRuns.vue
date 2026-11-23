@@ -226,8 +226,5 @@ onMounted(() => guarded(loadRuns))
 </template>
 
 <style scoped>
-.payroll-calculate-note { grid-column: 3; max-width: 55ch; }
-@media (max-width: 560px) {
-  .payroll-calculate-note { grid-column: 1 / -1; }
-}
+.payroll-calculate-note { align-self: center; max-width: 55ch; }
 </style>

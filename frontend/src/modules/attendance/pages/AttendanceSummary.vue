@@ -185,6 +185,8 @@ onMounted(load)
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
+  max-inline-size: 100%;
   background: #FFFFFF;
   border: 1px solid var(--line);
   padding: 4px 10px;
@@ -209,7 +211,7 @@ onMounted(load)
 }
 
 .period-year {
-  width: 72px;
+  width: 4.5rem;
   border: 1px solid var(--line);
   padding: 3px 7px;
   font-size: 13px;
@@ -219,7 +221,7 @@ onMounted(load)
 
 .mini-stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11.25rem), 1fr));
   gap: 12px;
   margin-bottom: 18px;
 }
@@ -275,6 +277,8 @@ onMounted(load)
   display: flex;
   flex-direction: column;
   gap: 1px;
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
 }
 
 .emp-name {

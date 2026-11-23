@@ -1,14 +1,21 @@
 <script setup>
-import { onBeforeUnmount, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, onBeforeUnmount, onMounted, ref, watchEffect } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import Layout from '@/shared/components/Layout.vue'
 import PlatformState from './PlatformState.vue'
 
 const router = useRouter()
+const route = useRoute()
 const session = ref(null)
 const error = ref('')
 const busy = ref(false)
 const request = new AbortController()
+const towerUnavailable = computed(() => route.path === '/platform/control-tower' && session.value && !session.value.controlTower)
+
+watchEffect(() => {
+  if (!towerUnavailable.value) return
+  router.replace(session.value.role === 'SECURITY_ADMINISTRATOR' ? '/platform/access' : '/platform/companies')
+})
 
 async function loadSession() {
   busy.value = true
@@ -62,7 +69,7 @@ onBeforeUnmount(() => request.abort())
     <PlatformState v-if="error" kind="error" :title="error">
       <button v-if="!session" class="btn small" type="button" @click="loadSession">Retry</button>
     </PlatformState>
-    <slot v-if="session" />
+    <slot v-if="session && !towerUnavailable" />
     <PlatformState v-else-if="busy" kind="loading" title="Loading the platform console" />
   </Layout>
 </template>

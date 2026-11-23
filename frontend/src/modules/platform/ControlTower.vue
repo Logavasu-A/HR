@@ -304,32 +304,45 @@ onBeforeUnmount(() => request?.abort())
           </div>
         </header>
         <div class="table-wrapper" tabindex="0" role="region" :aria-label="company ? 'Departments' : 'Company comparison'">
-          <table v-if="company" class="data-table tower-table">
-            <thead><tr><th scope="col">Department</th><th scope="col">Employees</th><th scope="col">Active</th></tr></thead>
-            <tbody>
-              <tr v-for="(department, i) in company.departments" :key="i"><td>{{ department.name }}</td><td>{{ count(department.employees) }}</td><td>{{ count(department.active) }}</td></tr>
-              <tr v-if="!company.departments.length"><td colspan="3">This company has no employees.</td></tr>
+          <table v-if="company" class="data-table tower-table responsive-table data-table--records" role="table">
+            <thead><tr><th scope="col">Department</th><th scope="col" class="num">Employees</th><th scope="col" class="num">Active</th></tr></thead>
+            <tbody role="rowgroup">
+              <tr v-for="(department, i) in company.departments" :key="i" role="row">
+                <td data-label="Department" role="cell"><span class="table-cell-value">{{ department.name }}</span></td>
+                <td data-label="Employees" class="num" role="cell"><span class="table-cell-value">{{ count(department.employees) }}</span></td>
+                <td data-label="Active" class="num" role="cell"><span class="table-cell-value">{{ count(department.active) }}</span></td>
+              </tr>
+              <tr v-if="!company.departments.length" class="table-state-row"><td class="empty" colspan="3">
+                <div class="table-state-message">This company has no employees.</div>
+              </td></tr>
             </tbody>
           </table>
-          <table v-else class="data-table tower-table comparison-table">
+          <table v-else class="data-table tower-table responsive-table data-table--records" role="table">
             <thead><tr>
-              <th scope="col">Company</th><th scope="col">Employees</th><th scope="col">Active</th><th scope="col">Worked share</th>
-              <th scope="col">Approved leave days</th><th scope="col">Applicants</th><th scope="col">Net payroll</th>
-              <th scope="col">Metrics</th>
+              <th scope="col">Company</th><th scope="col" class="num">Employees</th><th scope="col" class="num">Active</th><th scope="col" class="num">Worked share</th>
+              <th scope="col" class="num">Approved leave days</th><th scope="col" class="num">Applicants</th><th scope="col" class="num">Net payroll</th>
+              <th scope="col" class="actions-col">Actions</th>
             </tr></thead>
-            <tbody>
-              <tr v-for="row in filtered" :key="row.id">
-                <td>
-                  <router-link :to="{ path: '/platform/workspace', query: { company: row.id } }">{{ row.name }}</router-link>
-                  <small class="company-meta"><span class="badge" :class="row.status.toLowerCase()">{{ pretty(row.status) }}</span>{{ row.currency }}</small>
+            <tbody role="rowgroup">
+              <tr v-for="row in filtered" :key="row.id" role="row">
+                <td data-label="Company" role="cell">
+                  <div class="table-cell-value">
+                    <router-link :to="{ path: '/platform/workspace', query: { company: row.id } }">{{ row.name }}</router-link>
+                    <small class="company-meta"><span class="badge" :class="row.status.toLowerCase()">{{ pretty(row.status) }}</span>{{ row.currency }}</small>
+                  </div>
                 </td>
-                <td>{{ count(row.employees) }}</td><td>{{ count(row.activeEmployees) }}</td>
-                <td>{{ workedRate(row.counts.worked, row.counts.attendanceRecords) }}</td><td>{{ count(row.counts.leaveDays) }}</td>
-                <td>{{ count(row.counts.applicants) }}</td><td>{{ data.payrollLocked ? 'Locked' : row.payrollRuns ? money(row.netPayroll, row.currency) : '—' }}</td>
-                <td><router-link class="btn small company-metrics-link" :aria-label="`View metrics for ${row.name}`"
+                <td data-label="Employees" class="num" role="cell"><span class="table-cell-value">{{ count(row.employees) }}</span></td>
+                <td data-label="Active" class="num" role="cell"><span class="table-cell-value">{{ count(row.activeEmployees) }}</span></td>
+                <td data-label="Worked share" class="num" role="cell"><span class="table-cell-value">{{ workedRate(row.counts.worked, row.counts.attendanceRecords) }}</span></td>
+                <td data-label="Approved leave days" class="num" role="cell"><span class="table-cell-value">{{ count(row.counts.leaveDays) }}</span></td>
+                <td data-label="Applicants" class="num" role="cell"><span class="table-cell-value">{{ count(row.counts.applicants) }}</span></td>
+                <td data-label="Net payroll" class="num" role="cell"><span class="table-cell-value">{{ data.payrollLocked ? 'Locked' : row.payrollRuns ? money(row.netPayroll, row.currency) : '—' }}</span></td>
+                <td class="actions" role="cell"><router-link class="btn small company-metrics-link" :aria-label="`View metrics for ${row.name}`"
                   :to="{ query: { ...periodQuery, company: row.id } }">View metrics</router-link></td>
               </tr>
-              <tr v-if="!filtered.length"><td colspan="8">No companies match your search.</td></tr>
+              <tr v-if="!filtered.length" class="table-state-row"><td class="empty" colspan="8">
+                <div class="table-state-message">No companies match your search.</div>
+              </td></tr>
             </tbody>
           </table>
         </div>
@@ -349,7 +362,7 @@ onBeforeUnmount(() => request?.abort())
 .tower-panel-head, .tower-actions, .tower-period { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
 .tower-panel-head { justify-content: space-between; }
 .tower-back { display: inline-block; font-size: var(--platform-body-size); }
-.tower-period { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 110px) minmax(0, 124px) auto;
+.tower-period { display: grid; grid-template-columns: minmax(0, 1fr);
   padding: var(--platform-card-padding); align-items: end; column-gap: 14px; }
 .period-context { align-self: center; min-width: 0; overflow-wrap: anywhere; }
 .period-title { font-size: 14px; margin: 0; }
@@ -362,7 +375,7 @@ onBeforeUnmount(() => request?.abort())
 .kpi p { margin: 0; color: var(--muted); }
 .kpi strong { font-size: 1.85rem; line-height: 1.2; font-variant-numeric: tabular-nums; letter-spacing: -.04em; }
 .kpi small, .tower-values small, .tower-table small { color: var(--muted); }
-.tower-panels { display: grid; grid-template-columns: minmax(0, 1fr) minmax(245px, .47fr); align-items: start; gap: 16px; }
+.tower-panels { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 16px; }
 .tower-side { display: grid; gap: 16px; min-width: 0; }
 .tower-panel { min-width: 0; padding: var(--platform-card-padding); }
 .tower-panel h2 { margin: 0; font-size: var(--platform-section-size); letter-spacing: -.015em; }
@@ -371,12 +384,8 @@ onBeforeUnmount(() => request?.abort())
 .company-panel { overflow: hidden; }
 
 
-.tower-table { min-width: 390px; }
-.comparison-table { min-width: 875px; }
-.comparison-table th:first-child { min-width: 185px; }
-.comparison-table :is(th, td):last-child { text-align: right; }
 .comparison-table .company-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
-.company-metrics-link { white-space: nowrap; }
+.company-metrics-link { max-inline-size: 100%; }
 .tower-table a { text-decoration: none; }
 .tower-table a:hover { text-decoration: underline; }
 .tower-legend, .tower-values { margin: 12px 0 0; padding: 0; list-style: none; }
@@ -390,8 +399,8 @@ onBeforeUnmount(() => request?.abort())
 .tower-legend i, .chart-bar { background: var(--chart-first); }
 .tower-legend i.alternate, .chart-bar:nth-child(2) { background: var(--chart-second); }
 .chart-empty { margin: 14px 0 0; color: var(--muted); font-size: 13px; }
-.chart-scroll { overflow-x: auto; margin-top: 10px; border-radius: 6px; }
-.tower-chart { --plot-height: 176px; position: relative; min-width: calc(var(--months) * 34px + 38px); padding: 14px 10px 8px 34px; }
+.chart-scroll { container-type: inline-size; min-inline-size: 0; margin-top: 10px; border-radius: 6px; }
+.tower-chart { --plot-height: 11rem; position: relative; padding: 14px 10px 8px 34px; }
 .chart-guides { position: absolute; inset: 14px 10px auto 34px; height: var(--plot-height); display: flex; flex-direction: column; justify-content: space-between; pointer-events: none; }
 .chart-guides div { position: relative; border-top: 1px solid var(--line); height: 0; }
 .chart-guides span { position: absolute; inset-inline-end: calc(100% + 7px); top: 0; transform: translateY(-50%); color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
@@ -401,7 +410,7 @@ onBeforeUnmount(() => request?.abort())
 .chart-bars { display: flex; height: var(--plot-height); align-items: end; justify-content: center; gap: 3px; padding-inline: 3px; }
 .chart-bar { display: block; width: min(28%, 21px); border-radius: 4px 4px 0 0; }
 .chart-row time { display: block; text-align: center; color: var(--muted); font-size: 11px; padding-top: 7px; }
-.chart-tooltip { display: none; position: absolute; z-index: 2; top: 8px; left: 4px; min-width: max-content; padding: 7px 9px; border-radius: 7px; background: var(--ink); color: var(--card-bg); font-size: 12px; pointer-events: none; }
+.chart-tooltip { display: none; position: absolute; z-index: 2; top: 8px; left: 0; width: max-content; max-width: min(9rem, 40cqi); overflow-wrap: anywhere; padding: 7px 9px; border-radius: 7px; background: var(--ink); color: var(--card-bg); font-size: 12px; pointer-events: none; }
 .chart-tooltip span { display: flex; justify-content: space-between; gap: 8px; }
 .chart-row:hover .chart-tooltip, .chart-row:focus-visible .chart-tooltip { display: grid; gap: 2px; }
 .chart-row:nth-child(n+7) .chart-tooltip { right: 4px; left: auto; }
@@ -422,11 +431,21 @@ onBeforeUnmount(() => request?.abort())
 .tower-details { margin-top: 10px; }
 .tower-details summary { cursor: pointer; }
 .tower-table a, .tower-back { color: var(--primary-dark); font-weight: 650; }
-@media (max-width: 1000px) { .tower-panels { grid-template-columns: minmax(0, 1fr); } }
-@media (max-width: 600px) {
-  .tower-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@container (width < 28rem) {
+  .chart-bars { gap: 2px; padding-inline: 0; }
+  .chart-row:nth-child(even) time { visibility: hidden; }
+}
+@media (min-width: 768px) {
   .tower-period { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .period-context, .tower-period button { grid-column: 1 / -1; }
+}
+@media (min-width: 1025px) {
+  .tower-period { grid-template-columns: minmax(0, 1fr) minmax(0, 7rem) minmax(0, 8rem) auto; }
+  .period-context, .tower-period button { grid-column: auto; }
+  .tower-panels { grid-template-columns: minmax(0, 1fr) minmax(0, .47fr); }
+}
+@media (width < 768px) {
+  .tower-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .tower-panel-head .tower-actions, .tower-panel-head .search { width: 100%; }
 }
 </style>

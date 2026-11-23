@@ -9,13 +9,13 @@ const props = defineProps({
   loading: { type: Boolean, default: false },
   loadingText: { type: String, default: 'Loading…' },
   emptyText: { type: String, default: 'No records yet.' },
-  emptyIcon: { type: String, default: '📭' },
+  emptyIcon: { type: String, default: 'records' },
   sortable: { type: Boolean, default: true },
   selectable: { type: Boolean, default: false },
   selectedId: { type: [String, Number], default: null },
   selectedIds: { type: Array, default: () => [] },
   hasActions: { type: Boolean, default: null },
-  actionsLabel: { type: String, default: '' },
+  actionsLabel: { type: String, default: 'Actions' },
   formatCell: { type: Function, default: null },
   badgeClass: { type: Function, default: null },
   isShort: { type: Function, default: null },
@@ -70,6 +70,16 @@ function ariaSort(col) {
   return sortDir.value === 'asc' ? 'ascending' : 'descending'
 }
 
+const sortableColumns = computed(() => props.columns.filter(isColumnSortable))
+const mobileSort = computed({
+  get: () => sortKey.value && sortDir.value ? sortDir.value + ':' + sortKey.value : '',
+  set(value) {
+    const [direction, ...key] = value.split(':')
+    sortKey.value = key.join(':')
+    sortDir.value = direction
+  },
+})
+
 const sortedRows = computed(() => {
   if (!sortKey.value || !sortDir.value || props.rows.length <= 1) return props.rows
   const col = props.columns.find((c) => c.key === sortKey.value)
@@ -114,6 +124,11 @@ function isCellNowrap(col, row) {
   return false
 }
 
+function isDateCell(col, row) {
+  const value = getPath(row, col.key)
+  return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}(?:$|[T ]\d{2}:\d{2})/.test(value)
+}
+
 // ---- row selection ----
 const selectedSet = computed(() => new Set(props.selectedIds))
 const allSelected = computed(
@@ -141,8 +156,21 @@ function toggleRow(row, index) {
 
 <template>
   <div class="table-card">
+    <div v-if="sortableColumns.length || selectable" class="table-mobile-controls">
+      <select v-if="sortableColumns.length" v-model="mobileSort" aria-label="Sort rows">
+        <option value="">Default order</option>
+        <template v-for="column in sortableColumns" :key="column.key">
+          <option :value="'asc:' + column.key">{{ column.label }} (ascending)</option>
+          <option :value="'desc:' + column.key">{{ column.label }} (descending)</option>
+        </template>
+      </select>
+      <label v-if="selectable" class="table-select-target">
+        <input type="checkbox" class="check" :checked="allSelected" @change="toggleAll" />
+        Select all rows on this page
+      </label>
+    </div>
     <div class="table-wrapper" tabindex="0" role="region" :aria-label="ariaLabel">
-      <table class="data-table" :class="{ 'data-table--compact': compact }">
+      <table class="data-table responsive-table data-table--records" role="table" :class="{ 'data-table--compact': compact }">
         <thead>
           <tr>
             <th v-if="selectable" class="table-check-col" scope="col">
@@ -172,25 +200,42 @@ function toggleRow(row, index) {
             >
               <span class="th-inner">
                 <span>{{ c.label }}</span>
-                <span v-if="isColumnSortable(c)" class="sort-indicator" aria-hidden="true">
-                  {{ sortKey === c.key ? (sortDir === 'asc' ? '▲' : '▼') : '⇅' }}
-                </span>
+                <svg v-if="isColumnSortable(c)" class="sort-indicator" viewBox="0 0 16 16" fill="none"
+                  stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path v-if="sortKey !== c.key" d="m5 6 3-3 3 3M5 10l3 3 3-3" />
+                  <path v-else :d="sortDir === 'asc' ? 'm4 10 4-4 4 4' : 'm4 6 4 4 4-4'" />
+                </svg>
               </span>
             </th>
             <th v-if="showActions" class="actions-col" scope="col">{{ actionsLabel }}</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody role="rowgroup">
           <tr v-if="loading" class="table-state-row">
             <td :colspan="totalColumns" class="empty">
-              <div class="table-state-message">{{ loadingText }}</div>
+              <div class="table-state-message" role="status">
+                <span class="table-state-icon table-state-icon--loading" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                    <circle cx="12" cy="12" r="8" opacity=".25" />
+                    <path d="M20 12a8 8 0 0 0-8-8" />
+                  </svg>
+                </span>
+                {{ loadingText }}
+              </div>
             </td>
           </tr>
           <tr v-else-if="!sortedRows.length" class="table-state-row">
             <td :colspan="totalColumns" class="empty">
               <div class="table-state-message">
                 <slot name="empty">
-                  <span v-if="emptyIcon" class="empty-icon">{{ emptyIcon }}</span>
+                  <span v-if="emptyIcon" class="table-state-icon" aria-hidden="true">
+                    <svg v-if="emptyIcon === 'records' || emptyIcon === 'search'" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <path v-if="emptyIcon === 'search'" d="m16 16 4 4m-3-9a6 6 0 1 1-12 0 6 6 0 0 1 12 0Z" />
+                      <path v-else d="M4 13 7 5h10l3 8v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-5Zm0 0h5l1 2h4l1-2h5" />
+                    </svg>
+                    <template v-else>{{ emptyIcon }}</template>
+                  </span>
                   {{ emptyText }}
                 </slot>
               </div>
@@ -200,32 +245,39 @@ function toggleRow(row, index) {
             <tr
               v-for="(row, index) in sortedRows"
               :key="resolveKey(row, index)"
+              role="row"
               :class="{ selected: isRowSelected(row, index) }"
               @click="emit('row-click', row)"
             >
-              <td v-if="selectable" class="table-check-col" @click.stop>
-                <input
-                  type="checkbox"
-                  class="check"
-                  :checked="selectedSet.has(resolveKey(row, index))"
-                  aria-label="Select row"
-                  @change="toggleRow(row, index)"
-                />
+              <td v-if="selectable" class="table-check-col" role="cell" @click.stop>
+                <label class="table-select-target" aria-label="Select row">
+                  <input
+                    type="checkbox"
+                    class="check"
+                    :checked="selectedSet.has(resolveKey(row, index))"
+                    aria-label="Select row"
+                    @change="toggleRow(row, index)"
+                  />
+                </label>
               </td>
               <td
                 v-for="c in columns"
                 :key="c.key"
+                :data-label="c.label"
+                role="cell"
                 :class="{
                   num: c.money || c.align === 'right',
                   nowrap: isCellNowrap(c, row),
                 }"
               >
-                <slot :name="`cell-${c.key}`" :row="row" :column="c" :value="displayValue(c, row)">
-                  <span v-if="resolveBadge(c, row)" :class="resolveBadge(c, row)">{{ displayValue(c, row) }}</span>
-                  <template v-else>{{ displayValue(c, row) }}</template>
-                </slot>
+                <div class="table-cell-value" :class="{ 'table-date': isDateCell(c, row) }">
+                  <slot :name="`cell-${c.key}`" :row="row" :column="c" :value="displayValue(c, row)">
+                    <span v-if="resolveBadge(c, row)" :class="resolveBadge(c, row)">{{ displayValue(c, row) }}</span>
+                    <template v-else>{{ displayValue(c, row) }}</template>
+                  </slot>
+                </div>
               </td>
-              <td v-if="showActions" class="actions" @click.stop>
+              <td v-if="showActions" class="actions" role="cell" @click.stop>
                 <slot name="actions" :row="row" />
               </td>
             </tr>

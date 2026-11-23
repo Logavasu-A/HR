@@ -171,18 +171,20 @@ async function save() {
           <h2>Change password</h2>
           <div v-if="error" class="alert">{{ error }}</div>
           <div v-if="done" class="alert ok">Password changed.</div>
-          <div v-for="field in passwordFields" :key="field.key" class="field">
-            <label :for="`cp-${field.key}`">{{ field.label }} <span class="req">*</span></label>
-            <div class="password-input">
-              <input
-                :id="`cp-${field.key}`" v-model="field.value.value"
-                :type="visible[field.key] ? 'text' : 'password'"
-                :autocomplete="field.key === 'current' ? 'current-password' : 'new-password'"
-                :minlength="field.key === 'current' ? undefined : 8" :placeholder="field.placeholder" required
-              />
-              <button type="button" class="password-toggle" :aria-label="`${visible[field.key] ? 'Hide' : 'Show'} ${field.label.toLowerCase()}`" @click="visible[field.key] = !visible[field.key]">
-                {{ visible[field.key] ? 'Hide' : 'Show' }}
-              </button>
+          <div class="form-grid">
+            <div v-for="field in passwordFields" :key="field.key" class="field" :class="{ wide: field.key === 'current' }">
+              <label :for="`cp-${field.key}`">{{ field.label }} <span class="req">*</span></label>
+              <div class="password-input">
+                <input
+                  :id="`cp-${field.key}`" v-model="field.value.value"
+                  :type="visible[field.key] ? 'text' : 'password'"
+                  :autocomplete="field.key === 'current' ? 'current-password' : 'new-password'"
+                  :minlength="field.key === 'current' ? undefined : 8" :placeholder="field.placeholder" required
+                />
+                <button type="button" class="password-toggle" :aria-label="`${visible[field.key] ? 'Hide' : 'Show'} ${field.label.toLowerCase()}`" @click="visible[field.key] = !visible[field.key]">
+                  {{ visible[field.key] ? 'Hide' : 'Show' }}
+                </button>
+              </div>
             </div>
           </div>
           <div class="account-actions password-submit">
@@ -281,13 +283,14 @@ dd { margin: 2px 0 0; font-weight: 600; overflow-wrap: anywhere; }
   cursor: pointer;
 }
 .password-toggle:hover { background: var(--primary-soft); }
-.password-submit { justify-content: flex-end; border-top: 1px solid var(--line); padding-top: 12px; }
+.password-submit { justify-content: flex-end; border-top: 1px solid var(--line); margin-top: var(--space-16); padding-top: 12px; }
 .session-progress { display: block; width: 100%; height: 8px; accent-color: #0891b2; }
 .session-details { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 5px 18px; margin: 12px 0 0; }
 .session-details dd { margin: 0; }
 
-@media (max-width: 760px) {
+@media (width < 1025px) {
   .account-grid { grid-template-columns: minmax(0, 1fr); }
+  .password-toggle { inset-block: 0; min-inline-size: var(--tap-target); min-block-size: var(--tap-target); }
 }
 
 @media (max-width: 430px) {

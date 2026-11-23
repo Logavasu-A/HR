@@ -278,7 +278,6 @@ onMounted(initialize)
 .workspace-banner { padding: 12px max(var(--content-gutter), calc((100% - var(--content-width)) / 2 + var(--content-gutter))); background: var(--panel); border-bottom: 1px solid var(--line); }
 .workspace-entry { margin: 0; padding: var(--platform-card-padding); border: 1px solid var(--platform-border); border-radius: var(--platform-radius); box-shadow: var(--shadow-sm); }
 .workspace-entry-title { margin: 0; font-size: var(--platform-section-size); }
-.workspace-entry .workspace-switch { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .workspace-heading, .workspace-company, .workspace-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .workspace-heading { justify-content: space-between; }
 .workspace-company { min-width: 0; }
@@ -287,7 +286,7 @@ onMounted(initialize)
 .workspace-name { font-size: 16px; font-weight: 700; margin: 0; overflow-wrap: anywhere; }
 .workspace-initials { display: grid; place-items: center; width: 38px; height: 38px; flex: none; border-radius: 9px;
   background: var(--primary-tint); color: var(--primary-dark); font-weight: 700; }
-.workspace-switch { display: grid; grid-template-columns: minmax(130px, 1fr) minmax(150px, 1.15fr) minmax(180px, 1.4fr) auto;
+.workspace-switch { display: grid; grid-template-columns: minmax(0, 1fr);
   align-items: start; gap: 12px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
 .workspace-switch .field { margin: 0; }
 .workspace-switch .field, .workspace-switch :is(input, select) { min-width: 0; }
@@ -295,13 +294,13 @@ onMounted(initialize)
 .workspace-switch button { align-self: end; justify-self: start; min-height: var(--platform-control-default); }
 .workspace-state { margin-top: 14px; }
 .workspace-hint { grid-column: 1 / -1; }
-@media (max-width: 1100px) {
+@media (min-width: 768px) {
   .workspace-switch { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-@media (max-width: 550px) {
-  .workspace-switch, .workspace-entry .workspace-switch { grid-template-columns: minmax(0, 1fr); }
-  .workspace-actions { width: 100%; }
-  .workspace-actions button { min-height: var(--platform-control-small); }
-  .workspace-switch button { justify-self: stretch; min-height: var(--platform-control-large); }
+@media (width < 768px) {
+  .workspace-actions { width: 100%; gap: var(--space-8); }
+  .workspace-actions > .btn { flex: 1 1 auto; }
+  .workspace-entry { padding: var(--space-16); }
+  .workspace-switch button { justify-self: stretch; }
 }
 </style>

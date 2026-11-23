@@ -318,7 +318,7 @@ onMounted(start)
             <button v-if="search || status || sort !== 'newest'" class="btn" type="button" :disabled="busy" @click="clearFilters">Clear</button>
           </form>
           <div class="table-wrapper" tabindex="0" role="region" aria-label="Companies table">
-            <table class="data-table">
+            <table class="data-table responsive-table company-directory-table" role="table">
               <thead>
                 <tr>
                   <th scope="col">Company</th>
@@ -326,17 +326,17 @@ onMounted(start)
                   <th scope="col" class="actions-col">Actions</th>
                 </tr>
               </thead>
-              <tbody>
-                <tr v-for="company in results.content" :key="company.id">
-                  <td>
+              <tbody role="rowgroup">
+                <tr v-for="company in results.content" :key="company.id" role="row">
+                  <td data-label="Company" role="cell">
                     <router-link v-if="security?.adminView" :to="{ path: '/platform/workspace', query: { company: company.id } }">
                       <strong>{{ company.name }}</strong>
                     </router-link>
                     <strong v-else>{{ company.name }}</strong>
                     <span class="company-code muted">{{ [company.code, company.currency, company.timezone].filter(Boolean).join(' · ') }}</span>
                   </td>
-                  <td><span class="badge" :class="company.status.toLowerCase()">{{ pretty(company.status) }}</span></td>
-                  <td class="actions">
+                  <td data-label="Status" role="cell"><span class="badge" :class="company.status.toLowerCase()">{{ pretty(company.status) }}</span></td>
+                  <td class="actions" role="cell">
                     <div class="company-row-actions">
                       <router-link v-if="security?.adminView" class="btn small" :aria-label="`Open ${company.name} workspace`"
                         :to="{ path: '/platform/workspace', query: { company: company.id } }">Open workspace</router-link>
@@ -417,8 +417,7 @@ onMounted(start)
   background: var(--primary-tint); border-color: var(--primary-tint-2);
   box-shadow: inset 3px 0 0 var(--accent), var(--shadow-card);
 }
-.owner-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(245px, .32fr); gap: 16px; align-items: start; }
-.owner-grid--single { grid-template-columns: minmax(0, 1fr); }
+.owner-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
 .owner-directory { min-width: 0; overflow: hidden; padding: var(--platform-card-padding); }
 .owner-directory .owner-panel-heading { margin-bottom: var(--space-12); padding-inline-start: var(--table-cell-inline-padding); }
 .owner-panel-heading h2 { margin: 0; }
@@ -429,12 +428,11 @@ onMounted(start)
 .owner-filters input.search { flex: 1 1 185px; min-width: 0; }
 .owner-filters select { width: auto; min-width: 0; max-width: 100%; }
 .owner-editor-actions { margin-top: 16px; }
-.owner-status { width: 1%; }
+.owner-status { width: min(24%, 7rem); }
 .company-code { display: block; font-size: 12px; overflow-wrap: anywhere; }
-.company-row-actions { display: flex; justify-content: flex-end; gap: 6px; min-width: max-content; }
-.company-row-actions .btn { white-space: nowrap; }
-.owner-directory .data-table { min-width: 580px; }
-.owner-directory .actions-col { width: 225px; }
+.company-row-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; min-width: 0; }
+.company-row-actions .btn { max-inline-size: 100%; }
+.owner-directory .actions-col { width: min(32%, 14rem); }
 .owner-directory td:first-child a { text-decoration: none; }
 .owner-directory td:first-child a:hover { text-decoration: underline; }
 .owner-pagination { justify-content: flex-end; padding: 12px var(--table-cell-inline-padding); border-top: 1px solid var(--line); }
@@ -455,17 +453,22 @@ onMounted(start)
 .owner-company-link:hover { text-decoration: underline; }
 .activity-pagination { padding-inline: 0; margin-top: 12px; }
 .badge.suspended { background: var(--bad-bg); color: var(--bad-text); }
-@media (max-width: 1200px) { .owner-grid { grid-template-columns: minmax(0, 1fr); } }
-@media (max-width: 520px) {
-  .owner-directory .data-table { min-width: 0; table-layout: fixed; }
-  .owner-directory :is(.owner-status, .actions-col) { width: 4.75rem; }
-  .owner-directory :is(.owner-status, .actions-col, td:nth-child(2), td.actions) { padding-inline: 4px; }
-  .owner-directory .badge { padding-inline: 5px; gap: 4px; font-size: 11px; }
-  .company-row-actions { display: grid; justify-content: stretch; min-width: 0; }
-  .company-row-actions .btn { margin: 0; padding-inline: 4px; white-space: normal; text-align: center; }
+@media (min-width: 1201px) {
+  .owner-grid:not(.owner-grid--single) { grid-template-columns: minmax(0, 1fr) minmax(15rem, .32fr); }
+}
+@media (width < 768px) {
+  .company-row-actions { gap: var(--space-8); }
+  .owner-directory { --table-cell-inline-padding: var(--space-12); }
   .owner-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .owner-metric, .owner-directory, .owner-activity, .owner-editor { padding: var(--space-12); }
   .owner-filters input.search { flex-basis: 100%; }
-  .owner-filters select { flex: 1 1 120px; }
+  .owner-filters select { flex: 1 1 7.5rem; }
+  .owner-filters > .btn { flex: 1 1 auto; }
+  .owner-directory .responsive-table tbody tr:not(.table-state-row) { gap: var(--space-4); padding-block: var(--space-12); }
+  .owner-directory .responsive-table tbody td[data-label="Company"]::before,
+  .owner-directory .responsive-table tbody td[data-label="Status"]::before { display: none; }
+  .owner-directory td[data-label="Company"] strong { font-size: .9375rem; }
+  .owner-directory td[data-label="Status"] .badge { min-block-size: 1.5rem; }
   .owner-editor-actions > .primary { flex: 1 1 auto; }
 }
 </style>

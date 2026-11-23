@@ -179,17 +179,17 @@ onBeforeUnmount(() => {
         <button class="btn small" type="button" @click="reset">Reset filters</button>
       </PlatformState>
       <div v-else class="audit-scroll table-wrapper" tabindex="0" role="region" aria-label="Scrollable audit event table">
-        <table class="data-table">
+        <table class="data-table responsive-table data-table--records" role="table">
           <thead><tr><th scope="col">Time</th><th scope="col">Event</th><th scope="col">Actor</th>
-            <th scope="col">Company</th><th scope="col">Outcome</th><th scope="col" class="audit-action-col">Details</th></tr></thead>
-          <tbody>
-            <tr v-for="event in rows" :key="event.key">
-              <td><time :datetime="event.occurred">{{ formatDate.format(new Date(event.occurred)) }}</time></td>
-              <td><strong>{{ pretty(event.action) }}</strong><div class="muted">{{ pretty(event.source) }} · {{ event.operation }}</div></td>
-              <td>{{ event.actor || 'System' }}<div v-if="event.actor_role" class="muted">{{ pretty(event.actor_role) }}</div></td>
-              <td>{{ event.company || 'Platform' }}</td>
-              <td><span class="audit-status" :data-status="event.outcome">{{ pretty(event.outcome) }} · {{ event.status }}</span></td>
-              <td class="audit-action-col"><button class="btn small" type="button" @click="openDetail(event, $event.currentTarget)">{{ event.approval_id ? 'History' : 'View' }}</button></td>
+            <th scope="col">Company</th><th scope="col">Outcome</th><th scope="col" class="actions-col">Actions</th></tr></thead>
+          <tbody role="rowgroup">
+            <tr v-for="event in rows" :key="event.key" role="row">
+              <td data-label="Time" role="cell"><time class="table-cell-value" :datetime="event.occurred">{{ formatDate.format(new Date(event.occurred)) }}</time></td>
+              <td data-label="Event" role="cell"><div class="table-cell-value"><strong>{{ pretty(event.action) }}</strong><div class="muted">{{ pretty(event.source) }} · {{ event.operation }}</div></div></td>
+              <td data-label="Actor" role="cell"><div class="table-cell-value">{{ event.actor || 'System' }}<div v-if="event.actor_role" class="muted">{{ pretty(event.actor_role) }}</div></div></td>
+              <td data-label="Company" role="cell"><span class="table-cell-value">{{ event.company || 'Platform' }}</span></td>
+              <td data-label="Outcome" role="cell"><div class="table-cell-value"><span class="badge audit-status" :data-status="event.outcome">{{ pretty(event.outcome) }} · {{ event.status }}</span></div></td>
+              <td class="actions" role="cell"><button class="btn small" type="button" @click="openDetail(event, $event.currentTarget)">{{ event.approval_id ? 'History' : 'View' }}</button></td>
             </tr>
           </tbody>
         </table>
@@ -235,38 +235,26 @@ onBeforeUnmount(() => {
 .audit-header { justify-content: space-between; margin-bottom: 16px; }
 .audit-header h1, .audit-header h2, .audit-header p { margin: 0; }
 .audit-header p { margin-top: 4px; }
-.audit-filters { display: grid; grid-template-columns: 1.5fr 1.3fr repeat(4, minmax(120px, 1fr)); gap: var(--space-12); padding: var(--platform-card-padding); margin-bottom: var(--space-16); }
+.audit-filters { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-12); padding: var(--platform-card-padding); margin-bottom: var(--space-16); }
 .audit-filters .field { margin: 0; min-width: 0; }
 .audit-filters input, .audit-filters select { inline-size: 100%; min-inline-size: 0; }
 .audit-filters .audit-actions { grid-column: 1 / -1; }
-.audit-scroll table { min-width: 760px; }
-.audit-scroll .audit-action-col { width: 104px; min-width: 104px; }
-.audit-scroll .audit-action-col .btn { min-width: 64px; white-space: nowrap; }
-.audit-scroll td { vertical-align: top; }
 .audit-scroll .muted { font-size: 0.82rem; margin-top: 3px; }
-.audit-scroll time, .audit-status { white-space: nowrap; }
-.audit-status { display: inline-flex; align-items: center; gap: 6px; min-height: 24px; border-radius: 999px; padding: 0 8px; background: var(--ok-bg); color: var(--ok-text); font-weight: 600; font-size: 0.78rem; }
-.audit-status::before { content: ""; flex: 0 0 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.audit-status[data-status=SUCCESS] { background: var(--ok-bg); color: var(--ok-text); }
 .audit-status[data-status=DENIED] { background: var(--warn-bg); color: var(--warn-text); }
 .audit-status[data-status=FAILED] { background: var(--bad-bg); color: var(--bad-text); }
 .audit-pagination { justify-content: flex-end; padding: 12px 14px; }
 .audit-log:has(.audit-scroll), .audit-detail { padding: var(--platform-card-padding); }
 .audit-detail { margin-top: var(--space-16); }
-.audit-detail dl { display: grid; grid-template-columns: minmax(100px, 165px) 1fr; gap: 8px; }
+.audit-detail dl { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
 .audit-detail dt { color: var(--muted); }
 .audit-detail dd { margin: 0; overflow-wrap: anywhere; }
 .audit-timeline { margin: 18px 0 0; padding: 0 0 0 14px; list-style: none; border-inline-start: 2px solid var(--line); }
 .audit-timeline li { position: relative; padding: 7px 0; }
 .audit-timeline li::before { content: ''; position: absolute; inset-inline-start: -19px; top: 13px; width: 8px; height: 8px; border-radius: 50%; background: var(--primary); }
-@container (max-width: 960px) {
-  .audit-filters { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-}
-@container (max-width: 530px) {
+@media (min-width: 768px) {
   .audit-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .audit-filters .field:first-child { grid-column: 1 / -1; }
-}
-@container (max-width: 340px) {
-  .audit-filters { grid-template-columns: minmax(0, 1fr); }
+  .audit-detail dl { grid-template-columns: minmax(0, 10rem) minmax(0, 1fr); }
 }
 @media (max-width: 600px) {
   .audit-header .audit-actions { width: 100%; }

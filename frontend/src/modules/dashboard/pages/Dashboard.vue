@@ -5,12 +5,11 @@ import { getSummary } from '../services/dashboardService'
 import { errorMessage, money } from '@/shared/utils'
 import { useWorkspace } from '@/shared/workspaceContext'
 
-const { api } = useWorkspace()
+const { api, can, path } = useWorkspace()
 const data = ref(null)
 const error = ref('')
 const charts = []
 
-const department = ref(null)
 const gender = ref(null)
 const movement = ref(null)
 const leaveTrend = ref(null)
@@ -20,7 +19,6 @@ const payroll = ref(null)
 const palette = getComputedStyle(document.documentElement)
 const color = name => palette.getPropertyValue(name).trim()
 const primary = color('--primary')
-const pineHover = color('--primary-hover')
 const sage = color('--ok-line')
 const brick = color('--bad-line')
 const saffron = color('--accent-strong')
@@ -33,8 +31,15 @@ const attendanceColors = {
   Absent: brick,
   'Half day': saffron,
   'On leave': sage,
-  'Work from home': pineHover,
+  'Work from home': color('--primary-hover'),
   'Not marked': slate,
+}
+const tilePermissions = {
+  '/employees': 'core:read',
+  '/leave-applications': 'leave:read',
+  '/expense-claims': 'expense:read',
+  '/job-openings': 'recruitment:read',
+  '/job-applicants': 'recruitment:read',
 }
 
 Chart.defaults.font.family = "'Inter', system-ui, sans-serif"
@@ -63,22 +68,28 @@ const tiles = computed(() => {
     { label: 'Expense claims waiting', value: c.pendingExpenses, color: 'var(--warn-text)', route: '/expense-claims', icon: '<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>' },
     { label: 'Open positions', value: c.openPositions, color: 'var(--primary)', route: '/job-openings', icon: '<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>' },
     { label: 'Applicants in pipeline', value: c.applicantsInPipeline, color: 'var(--text-muted)', route: '/job-applicants', icon: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 11l-3 3-2-2"/>' },
-  ]
+  ].map(tile => ({ ...tile, route: can(tilePermissions[tile.route]) ? path(tile.route) : undefined }))
+})
+
+const departments = computed(() => {
+  const entries = Object.entries(data.value?.byDepartment || {})
+  const maximum = entries.reduce((largest, [, count]) => Math.max(largest, count), 0)
+  return entries.map(([name, count]) => ({ name, count, width: maximum ? count / maximum * 100 : 0 }))
 })
 
 function make(canvas, config) {
   if (canvas.value) charts.push(new Chart(canvas.value, config))
 }
 
-const noLegend = { plugins: { legend: { display: false } }, maintainAspectRatio: false }
-const withLegend = { plugins: { legend: { position: 'bottom' } }, maintainAspectRatio: false }
+const noLegend = { plugins: { legend: { display: false } }, responsive: true, maintainAspectRatio: false }
+const withLegend = { ...noLegend, plugins: { legend: { position: 'bottom' } } }
 const doughnutOptions = { ...withLegend, cutout: '68%' }
 const dashedScales = (whole = false) => ({
   scales: {
     x: {
       border: { display: false, dash: [4, 4] },
       grid: { display: false },
-      ticks: { color: slate },
+      ticks: { color: slate, autoSkip: true, maxRotation: 45 },
     },
     y: {
       beginAtZero: true,
@@ -90,14 +101,6 @@ const dashedScales = (whole = false) => ({
 })
 
 function draw(d) {
-  make(department, {
-    type: 'bar',
-    data: {
-      labels: Object.keys(d.byDepartment),
-      datasets: [{ data: Object.values(d.byDepartment), backgroundColor: primary, hoverBackgroundColor: pineHover }],
-    },
-    options: { ...noLegend, ...dashedScales(true) },
-  })
   make(gender, {
     type: 'doughnut',
     data: {
@@ -133,6 +136,7 @@ function draw(d) {
     },
     options: doughnutOptions,
   })
+  if (d.payrollLocked) return
   make(payroll, {
     type: 'line',
     data: {
@@ -158,12 +162,9 @@ onUnmounted(() => charts.forEach((c) => c.destroy()))
 </script>
 
 <template>
-  <div>
+  <div class="legacy-dashboard">
     <div class="page-head dashboard-header">
-      <div>
-        <h1>Dashboard</h1>
-      </div>
-      <div class="spacer"></div>
+      <h1>Dashboard</h1>
       <div class="dashboard-badge">
         <span class="live-dot" aria-hidden="true"></span>
         Live Analytics
@@ -197,17 +198,33 @@ onUnmounted(() => charts.forEach((c) => c.destroy()))
       </div>
 
       <div class="charts">
-        <div class="card chart"><h3>Employees by department</h3><div class="canvas"><canvas ref="department"></canvas></div></div>
+        <div class="card chart">
+          <h3 id="employees-by-department">Employees by department</h3>
+          <ul v-if="departments.length" class="department-plot" aria-labelledby="employees-by-department">
+            <li v-for="row in departments" :key="row.name" class="department-row">
+              <span class="department-name">{{ row.name }}</span>
+              <span class="department-track" aria-hidden="true">
+                <span :style="{ width: row.width + '%' }"></span>
+              </span>
+              <strong class="department-count">{{ row.count }}</strong>
+            </li>
+          </ul>
+          <p v-else class="muted department-empty">No active employees to show.</p>
+        </div>
         <div class="card chart"><h3>Attendance today</h3><div class="canvas"><canvas ref="attendance"></canvas></div></div>
         <div class="card chart"><h3>Joined and left, by month</h3><div class="canvas"><canvas ref="movement"></canvas></div></div>
         <div class="card chart"><h3>Employees by gender</h3><div class="canvas"><canvas ref="gender"></canvas></div></div>
         <div class="card chart"><h3>Approved leave days, by month</h3><div class="canvas"><canvas ref="leaveTrend"></canvas></div></div>
         <div class="card chart">
           <h3>Net payroll, by month</h3>
-          <div class="canvas"><canvas ref="payroll"></canvas></div>
-          <p v-if="data.payrollLocked" class="muted">Payroll totals require verified payroll access.</p>
-          <p v-else-if="!data.payroll.labels.length" class="muted">No payroll runs yet.</p>
-          <p v-else class="muted">Latest: {{ money(data.payroll.net[data.payroll.net.length - 1]) }}</p>
+          <div class="canvas">
+            <p v-if="data.payrollLocked" class="chart-placeholder muted">Payroll totals require verified payroll access.</p>
+            <p v-else-if="!data.payroll.labels.length" class="chart-placeholder muted">No payroll runs yet.</p>
+            <canvas v-else ref="payroll"></canvas>
+          </div>
+          <p v-if="!data.payrollLocked && data.payroll.labels.length" class="chart-note muted">
+            Latest: {{ money(data.payroll.net[data.payroll.net.length - 1]) }}
+          </p>
         </div>
       </div>
 
@@ -229,8 +246,81 @@ onUnmounted(() => charts.forEach((c) => c.destroy()))
 </template>
 
 <style scoped>
+.legacy-dashboard {
+  --dashboard-gap: 16px;
+  --dashboard-plot-height: 13.125rem;
+  container-type: inline-size;
+  display: grid;
+  gap: var(--dashboard-gap);
+}
+.legacy-dashboard :is(.stats, .charts) { gap: var(--dashboard-gap); margin: 0; }
+.legacy-dashboard .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.legacy-dashboard .charts { grid-template-columns: minmax(0, 1fr); }
+.legacy-dashboard :is(.chart, .stat, .birthday-card) { min-width: 0; padding: 16px; }
+.legacy-dashboard .stat { display: flex; flex-direction: column; }
+.legacy-dashboard .stat-top { align-items: start; gap: 8px; }
+.legacy-dashboard .stat-label { overflow-wrap: anywhere; }
+.legacy-dashboard .stat-icon { width: 32px; height: 32px; }
+.legacy-dashboard .stat-value { margin: 0; line-height: 1.15; }
+.legacy-dashboard .chart h3 { margin: 0 0 12px; line-height: 1.4; }
+.legacy-dashboard .canvas { height: var(--dashboard-plot-height); }
+
+.department-plot {
+  display: grid;
+  grid-template-columns: minmax(0, 44%) minmax(0, 1fr) max-content;
+  gap: 4px 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-block-size: var(--dashboard-plot-height);
+  overflow-y: auto;
+}
+.department-row {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+  align-items: center;
+  min-height: 16px;
+  font-size: 11.5px;
+  line-height: 1.35;
+}
+.department-name { overflow-wrap: anywhere; color: var(--text-2); }
+.department-track { height: 8px; overflow: hidden; border-radius: 4px; background: var(--primary-tint); }
+.department-track > span { display: block; height: 100%; border-radius: inherit; background: var(--primary); }
+.department-count { text-align: right; font-variant-numeric: tabular-nums; }
+.department-empty { margin: 0; }
+
+@container (width < 21rem) {
+  .legacy-dashboard .stats { grid-template-columns: minmax(0, 1fr); }
+}
+@media (width < 768px) {
+  .department-plot { max-block-size: none; overflow: visible; }
+}
+@media (min-width: 768px) {
+  .legacy-dashboard { --dashboard-plot-height: 14rem; }
+}
+@container (min-width: 38rem) {
+  .legacy-dashboard .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .legacy-dashboard .charts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 1025px) {
+  .legacy-dashboard { --dashboard-plot-height: 15.625rem; }
+}
+@container (min-width: 58rem) {
+  .legacy-dashboard .stats { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .legacy-dashboard .charts { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@container (max-width: 430px) {
+  .legacy-dashboard :is(.stat, .chart, .birthday-card) { padding: 12px; }
+  .legacy-dashboard .stats, .legacy-dashboard .charts { gap: 10px; }
+  .legacy-dashboard .stat-top { gap: 6px; }
+  .legacy-dashboard .stat-icon { width: 28px; height: 28px; }
+  .legacy-dashboard .stat-value { font-size: 26px; }
+}
+
 .dashboard-header {
-  margin-bottom: 20px;
+  justify-content: space-between;
+  margin: 0;
 }
 .dashboard-badge {
   display: inline-flex;
@@ -278,6 +368,9 @@ onUnmounted(() => charts.forEach((c) => c.destroy()))
   display: flex;
   align-items: baseline;
   justify-content: space-between;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 10px;
 }
 .stat-arrow {
   color: var(--muted);
@@ -289,6 +382,16 @@ onUnmounted(() => charts.forEach((c) => c.destroy()))
   transform: translateX(4px);
   color: var(--stat-color);
 }
+
+.chart-placeholder {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  margin: 0;
+  padding: 12px;
+  text-align: center;
+}
+.chart-note { margin: 8px 0 0; }
 
 .birthday-card-head {
   display: flex;
@@ -310,6 +413,8 @@ onUnmounted(() => charts.forEach((c) => c.destroy()))
 .birthday-pill {
   display: inline-flex;
   align-items: center;
+  flex-wrap: wrap;
+  min-width: 0;
   gap: 8px;
   background: var(--row-hover);
   border: 1px solid var(--line);
@@ -323,6 +428,7 @@ onUnmounted(() => charts.forEach((c) => c.destroy()))
   font-variant-numeric: tabular-nums;
 }
 .birthday-name {
+  overflow-wrap: anywhere;
   color: var(--text);
 }
 </style>

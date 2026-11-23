@@ -211,7 +211,7 @@ async function login() {
   --sign-in-input-border: #86938e;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  min-height: 100vh;
+  min-height: 100dvh;
   background: var(--sign-in-ivory);
   color: var(--ink);
 }
@@ -449,6 +449,12 @@ async function login() {
 
 @media (max-width: 360px) {
   .sign-in-panel { padding-inline: 16px; }
+}
+@media (width < 1025px), (pointer: coarse) {
+  .sign-in-switch a, .password-toggle, .remember-login, .password-help summary {
+    min-block-size: var(--tap-target);
+  }
+  .password-help summary { display: flex; align-items: center; }
 }
 </style>
 

@@ -1,0 +1,34 @@
+server:
+  port: 8080
+
+spring:
+  config:
+    # Secrets live in backend/application-local.properties (not committed).
+    import: optional:file:./application-local.properties
+  datasource:
+    url: jdbc:postgresql://localhost:5432/hrms
+    username: postgres
+    password: ${DB_PASSWORD:}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: true
+    properties:
+      hibernate:
+        default_batch_fetch_size: 50
+        jdbc.batch_size: 50
+  flyway:
+    enabled: true
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:}
+    expiry-hours: 12
+  mail:
+    # Set to true and fill the spring.mail.* values in application-local.properties to send emails.
+    enabled: false
+    from: hrms@localhost
+  platform:
+    enabled: true
+    control-tower:
+      enabled: true

@@ -27,5 +27,5 @@ api.interceptors.response.use(
   },
 )
 
-installFinanceAccess(api)
+installFinanceAccess(api, () => auth.token)
 export default api

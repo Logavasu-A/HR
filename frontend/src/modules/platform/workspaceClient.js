@@ -25,6 +25,6 @@ export function createWorkspaceClient({ token, id, onInvalid, adapter }) {
     },
   )
 
-  installFinanceAccess(api)
+  installFinanceAccess(api, () => lifetime.signal.aborted ? null : id)
   return { api, retire: () => lifetime.abort() }
 }

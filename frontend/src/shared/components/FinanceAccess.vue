@@ -39,7 +39,12 @@ function challenge(event) {
 
 async function confirm() {
   const current = pending
-  if (!current) return
+  if (!current || busy.value) return
+  if (!current.isCurrent()) {
+    clear()
+    dialog.value.close()
+    return
+  }
   busy.value = true
   error.value = ''
   try {
@@ -51,6 +56,11 @@ async function confirm() {
       headers = { 'X-HRMS-Confirm': 'true', 'X-HRMS-Reason': reason.value }
     }
     if (pending !== current) return
+    if (!current.isCurrent()) {
+      clear()
+      dialog.value.close()
+      return
+    }
     pending = null
     dialog.value.close()
     current.retry(headers)
@@ -76,6 +86,7 @@ async function loadQueue() {
 }
 
 function openQueue() {
+  if (queue.value.open) return
   rows.value = []
   queue.value.showModal()
   loadQueue()
@@ -100,10 +111,17 @@ onBeforeUnmount(() => {
   financeChallenges.removeEventListener('finance-challenge', challenge)
   clear()
 })
+defineExpose({ openQueue })
 </script>
 
 <template>
-  <button type="button" class="btn small" @click="openQueue">Financial approvals</button>
+  <button type="button" class="btn small finance-trigger" aria-label="Financial approvals" title="Financial approvals" @click="openQueue">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+      <rect x="4" y="10" width="16" height="11" rx="2" />
+      <path d="M8 10V7a4 4 0 0 1 8 0v3m-4 4v3" />
+    </svg>
+    <span>Financial approvals</span>
+  </button>
   <dialog ref="queue" class="finance-dialog" aria-label="Financial approvals">
     <header><h2>Financial approvals</h2><button type="button" class="btn small" @click="queue.close()">Close</button></header>
     <p v-if="queueError" class="alert" role="alert">{{ queueError }}</p>
@@ -146,11 +164,16 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-.finance-dialog { width: min(560px, 92vw); max-height: 85vh; color: var(--text); background: var(--card-bg); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
+.finance-trigger svg { inline-size: 16px; block-size: 16px; flex: none; }
+@media (width < 768px) {
+  .finance-trigger svg { inline-size: 20px; block-size: 20px; }
+  .finance-trigger span { display: none; }
+}
+.finance-dialog { width: min(35rem, 92%); max-width: 100%; max-height: 90dvh; overflow-y: auto; color: var(--text); background: var(--card-bg); border: 1px solid var(--line); border-radius: 12px; padding: clamp(1rem, 3vw, 1.25rem); }
 .finance-dialog::backdrop { background: var(--scrim); }
-.finance-dialog header { display: flex; justify-content: space-between; align-items: start; gap: 12px; }
+.finance-dialog header { display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 12px; }
 .finance-dialog h2 { margin: 0 0 14px; }
 .finance-dialog ul { list-style: none; padding: 0; }
 .finance-dialog li { padding: 10px 0; border-top: 1px solid var(--line); overflow-wrap: anywhere; }
-.finance-actions { display: flex; gap: 8px; margin-top: 10px; }
+.finance-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 </style>

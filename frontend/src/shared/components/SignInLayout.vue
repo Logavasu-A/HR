@@ -72,7 +72,7 @@ defineProps({
 
 <style scoped>
 .auth-layout {
-  min-height: 100vh;
+  min-height: 100dvh;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.12fr);
   background: var(--page-bg);
@@ -144,7 +144,7 @@ defineProps({
 }
 
 .auth-aside {
-  margin: clamp(40px, 8vh, 80px) 0;
+  margin: clamp(2.5rem, 8dvh, 5rem) 0;
   z-index: 1;
 }
 

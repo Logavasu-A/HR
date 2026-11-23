@@ -2,11 +2,13 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { list as listNotifications } from '@/modules/notifications/services/notificationService'
+import { getSummary } from '@/modules/dashboard/services/dashboardService'
 import { auth, isEmployee } from '@/shared/auth'
 import { useWorkspace } from '@/shared/workspaceContext'
 import { logout as endSession } from '@/modules/auth/services/authService'
 import { resources, selfResources } from '@/modules'
 import FinanceAccess from '@/shared/components/FinanceAccess.vue'
+import SidebarNavigation from '@/shared/components/SidebarNavigation.vue'
 import { pretty } from '@/shared/utils'
 
 const props = defineProps({
@@ -17,15 +19,40 @@ const emit = defineEmits(['platform-logout'])
 
 const router = useRouter()
 const route = useRoute()
-const { owner, can, path } = useWorkspace()
+const { owner, can, path, api, companyName: workspaceCompanyName, companyDetails } = useWorkspace()
 const unread = ref(0)
+const pendingLeaves = ref(0)
 const menuOpen = ref(false)
 const menuButton = ref(null)
-const navigation = ref(null)
+const sidebar = ref(null)
+const financeAccess = ref(null)
+const mainContent = ref(null)
+const companyName = computed(() => !owner && !props.platform && (auth.user?.companyName || auth.user?.companyCode))
+const sidebarWorkspace = computed(() => props.platform ? 'Platform administration' : workspaceCompanyName || companyName.value)
+const sidebarScope = computed(() => {
+  if (props.platform) return `platform:${props.platformSession?.username || ''}`
+  if (owner) return `admin-view:${owner}:${companyDetails?.companyId || workspaceCompanyName}`
+  return `company:${auth.user?.companyId || auth.user?.companyCode || ''}:${auth.user?.id || auth.user?.username || ''}`
+})
+const showsFinance = computed(() => !props.platform && (owner || can('payroll:read') || can('payroll:write') ||
+  auth.user?.permissions?.includes('employee-bank:read') || isEmployee()))
 const displayName = computed(() => auth.user?.employeeName || auth.user?.username || '')
-const initials = computed(() =>
-  (displayName.value || '?').split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase(),
-)
+const initialsFor = name => (name || '?').split(/\s+/).map(word => word[0]).slice(0, 2).join('').toUpperCase()
+const initials = computed(() => initialsFor(displayName.value))
+const sidebarProfile = computed(() => {
+  if (owner) return { name: owner, initials: initialsFor(owner), role: 'Super Admin · Admin View' }
+  if (props.platform) {
+    const session = props.platformSession
+    return session && { name: session.username, initials: initialsFor(session.username), role: pretty(session.role), signOut: true }
+  }
+  return {
+    name: displayName.value,
+    initials: initials.value,
+    role: pretty(auth.user?.role).replace(/^Hr\b/, 'HR'),
+    accountLink: '/change-password',
+    signOut: true,
+  }
+})
 let timer = null
 
 // Sidebar: only the screens this user's role can read.
@@ -39,11 +66,12 @@ const groups = computed(() => {
     if (session?.adminView) list.push({ title: 'Company workspaces', path: '/platform/workspace' })
     if (session?.controlTower) list.push({ title: 'Audit Center', path: '/platform/audit' })
     if (session?.accessCenter) list.push({ title: 'Access Center', path: '/platform/access' })
-    return [{ name: 'Platform', list }]
+    return list.length ? [{ name: 'Platform', list }] : []
   }
   const items = []
   if (can('dashboard:read')) items.push({ group: 'Overview', title: 'Dashboard', path: '/dashboard' })
   if (owner) items.push({ group: 'Overview', title: 'Company details', path: '/company-details' })
+  else items.push({ group: 'Overview', title: 'Notifications', path: '/notifications' })
   if (!owner && isEmployee()) {
     items.push({ group: 'My space', title: 'Home', path: '/my' })
     selfResources.forEach((r) => items.push(r))
@@ -67,70 +95,42 @@ const activeTitle = computed(() => activeGroup.value?.list.find((item) => path(i
   || (props.platform && route.path.startsWith('/platform/workspace/') ? 'Company workspaces' : '')
   || ({ '/notifications': 'Notifications', '/change-password': 'Account & security' })[route.path])
 
-function itemIcon(item) {
-  const p = String(item.path || '').toLowerCase()
-  const t = String(item.title || '').toLowerCase()
-  if (p === '/dashboard' || t === 'dashboard') {
-    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>`
-  }
-  if (p.includes('control-tower') || t.includes('control tower')) {
-    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`
-  }
-  if (p.includes('companies') || t.includes('companies') || p.includes('company-details')) {
-    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/><path d="M9 9h1"/><path d="M9 13h1"/><path d="M9 17h1"/><path d="M14 9h1"/><path d="M14 13h1"/><path d="M14 17h1"/></svg>`
-  }
-  if (p.includes('employee') || t.includes('employee')) {
-    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`
-  }
-  if (p.includes('attendance') || t.includes('attendance') || p.includes('shift')) {
-    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`
-  }
-  if (p.includes('leave') || t.includes('leave') || p.includes('holiday')) {
-    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`
-  }
-  if (p.includes('payroll') || p.includes('salary') || t.includes('payroll') || t.includes('payslip')) {
-    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>`
-  }
-  if (p.includes('recruit') || p.includes('job') || p.includes('interview') || t.includes('recruit')) {
-    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>`
-  }
-  if (p.includes('expense') || p.includes('advance') || t.includes('expense')) {
-    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`
-  }
-  if (p.includes('performance') || p.includes('appraisal') || p.includes('goal')) {
-    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>`
-  }
-  if (p.includes('user') || p.includes('role') || p.includes('audit')) {
-    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10H12V2z"/><path d="M12 2a10 10 0 0 1 10 10"/></svg>`
-  }
-  if (p.includes('department') || p.includes('branch') || p.includes('designation')) {
-    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>`
-  }
-  if (p.includes('my')) {
-    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`
-  }
-  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/></svg>`
-}
-
-async function toggleMenu() {
+function toggleMenu() {
   if (menuOpen.value) {
     closeMenu()
     return
   }
   menuOpen.value = true
-  await nextTick()
-  const links = navigation.value
-  const firstLink = links?.querySelector('[aria-current="page"]') || links?.querySelector('a')
-  firstLink?.focus()
+  sidebar.value?.focusNavigation()
 }
 
 function closeMenu(restoreFocus = true) {
   if (!menuOpen.value) return
   menuOpen.value = false
-  if (restoreFocus) menuButton.value?.focus()
+  sidebar.value?.clearSearch()
+  if (restoreFocus) nextTick(() => menuButton.value?.focus({ preventScroll: true }))
 }
 
-watch(() => route.path, () => closeMenu(false))
+function navigateFromSidebar() {
+  if (!menuOpen.value) return
+  closeMenu(false)
+  nextTick(() => mainContent.value?.focus())
+}
+
+async function openSidebarFinance() {
+  const wasInDrawer = menuOpen.value
+  closeMenu(false)
+  await nextTick()
+  if (wasInDrawer) menuButton.value?.focus({ preventScroll: true })
+  financeAccess.value?.openQueue()
+}
+
+watch(menuOpen, open => document.documentElement.classList.toggle('navigation-locked', open), { flush: 'sync' })
+
+watch(() => route.path, () => {
+  closeMenu(false)
+  if (path('/leave-applications') === route.path) loadPendingLeaves()
+})
 
 async function loadUnread() {
   try {
@@ -146,68 +146,60 @@ async function logout() {
   router.replace('/login')
 }
 
+function sidebarLogout() {
+  if (props.platform) emit('platform-logout')
+  else logout()
+}
+
+async function loadPendingLeaves() {
+  if (props.platform || !can('dashboard:read') || !can('leave:read')) return
+  try {
+    const summary = await getSummary(api)
+    pendingLeaves.value = summary.cards?.pendingLeaves || 0
+  } catch {
+    pendingLeaves.value = 0
+  }
+}
+
 onMounted(() => {
-  if (owner || props.platform) return
-  loadUnread()
-  timer = setInterval(loadUnread, 60000)
+  if (props.platform) return
+  const refreshBadges = () => {
+    if (!owner) loadUnread()
+    loadPendingLeaves()
+  }
+  refreshBadges()
+  timer = setInterval(refreshBadges, 60000)
 })
-onUnmounted(() => clearInterval(timer))
+onUnmounted(() => {
+  clearInterval(timer)
+  if (menuOpen.value) document.documentElement.classList.remove('navigation-locked')
+})
 </script>
 
 <template>
   <div class="shell" :class="{ 'platform-shell': platform, 'admin-workspace-shell': owner }" @keydown.esc="closeMenu()">
-    <a class="skip-link" href="#workspace-content">Skip to content</a>
+    <a class="skip-link" href="#workspace-content" :inert="menuOpen">Skip to content</a>
     <div v-if="menuOpen" class="sidebar-overlay" aria-hidden="true" @click="closeMenu()"></div>
-    <aside class="sidebar" :class="{ open: menuOpen }">
-      <div class="brand">
-        <img src="/hrms-logo-v3.svg" alt="HRMS" class="brand-logo" width="270" height="72" />
-      </div>
-      <nav :id="platform ? 'platform-navigation' : 'workspace-navigation'" ref="navigation"
-        :aria-label="platform ? 'Platform sidebar' : 'Workspace navigation'">
-        <div v-for="g in groups" :key="g.name" class="nav-group">
-          <div class="nav-title">{{ g.name }}</div>
-          <router-link
-            v-for="item in g.list"
-            :key="item.path"
-            :to="path(item.path)"
-            class="sidebar-nav-link"
-            :class="{ 'router-link-exact-active': platform && item.path === '/platform/workspace' && route.path.startsWith('/platform/workspace/') }"
-            :aria-current="platform && item.path === '/platform/workspace' && route.path.startsWith('/platform/workspace/') ? 'page' : undefined"
-            @click="closeMenu(false)"
-          >
-            <span class="sidebar-nav-icon" aria-hidden="true" v-html="itemIcon(item)"></span>
-            <span class="sidebar-nav-title">{{ item.title }}</span>
-          </router-link>
-        </div>
-      </nav>
+    <SidebarNavigation
+      ref="sidebar" :groups="groups" :path="path" :profile="sidebarProfile" :platform="platform"
+      :workspace-name="sidebarWorkspace || ''" :preference-scope="sidebarScope" :finance="Boolean(showsFinance)"
+      :open="menuOpen" :pending-leaves="pendingLeaves" :unread="unread"
+      @open="menuOpen = true" @close="closeMenu()" @navigate="navigateFromSidebar" @logout="sidebarLogout"
+      @finance="openSidebarFinance"
+    />
 
-      <div v-if="!owner && !platform" class="sidebar-footer">
-        <router-link to="/change-password" class="sidebar-user-card" title="Account settings">
-          <span class="sidebar-avatar">{{ initials }}</span>
-          <div class="sidebar-user-meta">
-            <span class="sidebar-user-name">{{ displayName }}</span>
-            <span class="sidebar-user-role">{{ String(auth.user?.role || '').toLowerCase() }}</span>
-          </div>
-        </router-link>
-        <button class="sidebar-logout-btn" title="Sign out" aria-label="Sign out" @click="logout">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-            <polyline points="16 17 21 12 16 7"/>
-            <line x1="21" y1="12" x2="9" y2="12"/>
-          </svg>
-        </button>
-      </div>
-    </aside>
-
-    <div class="main">
+    <div class="main" :inert="menuOpen">
       <header class="topbar">
         <button
           ref="menuButton" class="btn small menu-btn" type="button"
+          aria-label="Menu"
           :aria-controls="platform ? 'platform-navigation' : 'workspace-navigation'" :aria-expanded="menuOpen" @click="toggleMenu"
         >
-          {{ menuOpen ? 'Close menu' : 'Menu' }}
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"
+            stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
         </button>
         <div v-if="activeTitle" class="workspace-location">
+          <span v-if="companyName" class="mobile-company">{{ companyName }}</span>
           <span v-if="platform || (activeGroup && activeGroup.name !== activeTitle)" class="workspace-location-group">
             {{ platform ? 'Platform' : activeGroup.name }}
             <span class="breadcrumb-sep" aria-hidden="true">/</span>
@@ -215,15 +207,15 @@ onUnmounted(() => clearInterval(timer))
           <strong class="workspace-location-title">{{ activeTitle }}</strong>
         </div>
         <div class="spacer"></div>
-        <div v-if="!owner && !platform && (auth.user?.companyName || auth.user?.companyCode)" class="active-company-badge">
-          <span class="company-badge-pulse" aria-hidden="true"></span>
-          <span class="company-badge-icon" aria-hidden="true">🏢</span>
-          <span class="company-badge-name">{{ auth.user?.companyName || auth.user?.companyCode }}</span>
+        <div v-if="companyName" class="active-company-badge" :title="companyName">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+            stroke-linejoin="round" aria-hidden="true"><path d="M4 21h16M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16M10 8h4m-4 4h4m-3 9v-5h2v5"/></svg>
+          <span class="company-badge-name">{{ companyName }}</span>
         </div>
-        <FinanceAccess v-if="!platform && (owner || can('payroll:read') || can('payroll:write') || auth.user?.permissions?.includes('employee-bank:read') || isEmployee())" />
+        <FinanceAccess v-if="showsFinance" ref="financeAccess" />
         <router-link v-if="!owner && !platform" to="/notifications" class="bell" :aria-label="unread ? `Notifications, ${unread} unread` : 'Notifications'" title="Notifications">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-          <span v-if="unread" class="count">{{ unread }}</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span v-if="unread" class="count" aria-hidden="true">{{ unread > 99 ? '99+' : unread }}</span>
         </router-link>
         <router-link v-if="!owner && !platform" to="/change-password" class="who" title="Account &amp; security" aria-label="Account &amp; security">
           <span class="avatar">{{ initials }}</span>
@@ -232,17 +224,18 @@ onUnmounted(() => clearInterval(timer))
             <span class="who-role">{{ String(auth.user?.role || '').toLowerCase().replace(/_/g, ' ') }}</span>
           </span>
         </router-link>
-        <button v-if="!owner && !platform" class="btn small" @click="logout">Log out</button>
-        <template v-if="platformSession">
-          <span class="owner-location">
-            <strong>{{ platformSession.username }}</strong>
-            <span class="muted">{{ pretty(platformSession.role) }}</span>
-          </span>
-          <button class="btn small" type="button" @click="emit('platform-logout')">Sign out</button>
-        </template>
+        <span v-if="platformSession" class="owner-location">
+          <strong>{{ platformSession.username }}</strong>
+          <span class="muted">{{ pretty(platformSession.role) }}</span>
+        </span>
+        <button v-if="!owner && (!platform || platformSession)" class="btn small topbar-sign-out" type="button" @click="sidebarLogout">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+            stroke-linejoin="round" aria-hidden="true"><path d="M10 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5m5 4 5 5-5 5m5-5H9"/></svg>
+          {{ platform ? 'Sign out' : 'Log out' }}
+        </button>
       </header>
       <slot name="before-content" />
-      <main id="workspace-content" class="content" tabindex="-1">
+      <main id="workspace-content" ref="mainContent" class="content" tabindex="-1">
         <slot />
       </main>
     </div>
@@ -251,201 +244,136 @@ onUnmounted(() => clearInterval(timer))
 
 <style scoped>
 .platform-shell :deep(a.btn) { text-decoration: none; }
-.platform-shell :deep(.data-table :is(th, td) .btn) { white-space: nowrap; overflow-wrap: normal; }
-.topbar .menu-btn { display: none; }
-@media (max-width: 800px) {
-  .topbar .menu-btn { display: inline-flex; }
-  .shell:not(.platform-shell, .admin-workspace-shell) .topbar {
-    flex-wrap: wrap;
-    gap: 8px;
+.topbar {
+  --toolbar-control-height: var(--tap-target);
+  --toolbar-border: color-mix(in srgb, var(--ink-text) 38%, var(--ink));
+  gap: var(--space-8);
+}
+.topbar > * { max-inline-size: 100%; }
+.topbar .menu-btn, .mobile-company { display: none; }
+.workspace-location { flex: 1 1 auto; }
+.topbar > .workspace-location + .spacer { display: none; }
+.workspace-location-title, .mobile-company { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mobile-company { color: var(--ink-text); font-size: .75rem; }
+.topbar :is(.menu-btn, .bell, .who, .topbar-sign-out), .topbar :deep(.finance-trigger) {
+  min-block-size: var(--toolbar-control-height);
+  border: 1px solid var(--toolbar-border);
+  border-radius: var(--radius-sm);
+  background: var(--ink-raised);
+  color: var(--card-bg);
+  box-shadow: none;
+}
+.topbar :is(.menu-btn, .bell, .who, .topbar-sign-out):is(:hover, :active, [aria-current="page"], [aria-expanded="true"]),
+.topbar :deep(.finance-trigger:is(:hover, :active)) {
+  background: var(--primary);
+  border-color: var(--ink-text);
+}
+.topbar :is(.menu-btn, .bell, .who, .topbar-sign-out):focus-visible, .topbar :deep(.finance-trigger:focus-visible) {
+  outline: 2px solid var(--ink-accent);
+  outline-offset: 2px;
+}
+.topbar .bell { inline-size: var(--toolbar-control-height); block-size: var(--toolbar-control-height); }
+.topbar .bell svg { inline-size: 20px; block-size: 20px; stroke: currentColor; }
+.topbar .count {
+  inset: -3px -3px auto auto;
+  min-inline-size: 17px;
+  padding-inline: 3px;
+  border-color: var(--ink);
+  font-size: .625rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 14px;
+}
+.topbar .avatar { box-shadow: none; }
+@media (width < 768px) {
+  .topbar { flex-wrap: nowrap; min-block-size: var(--platform-topbar-height); padding-block: var(--space-8); }
+  .topbar:has(.mobile-company) { flex-wrap: wrap; row-gap: var(--space-4); }
+  .topbar .workspace-location { display: grid; flex: 1 1 auto; gap: 0; }
+  .topbar .workspace-location:has(.mobile-company) { display: contents; }
+  .workspace-location-title {
+    flex: 1 1 0;
+    min-inline-size: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.2;
   }
+  .mobile-company {
+    display: block;
+    order: 1;
+    flex: 0 0 100%;
+    padding-block-start: var(--space-4);
+    border-block-start: 1px solid var(--ink-raised);
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .topbar :is(.workspace-location-group, .active-company-badge, .owner-location, .topbar-sign-out, .workspace-location + .spacer) {
+    display: none;
+  }
+  .topbar :is(.menu-btn, .bell, .who), .topbar :deep(.finance-trigger) {
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 var(--tap-target);
+    inline-size: var(--tap-target);
+    block-size: var(--tap-target);
+    padding: 0;
+  }
+  .topbar .avatar {
+    inline-size: 100%;
+    block-size: 100%;
+    border-radius: inherit;
+    background: transparent;
+    color: inherit;
+  }
+}
+@media (min-width: 768px) {
+  .topbar { min-block-size: 4rem; padding-block: var(--space-8); }
+  .owner-location { margin-inline-start: auto; }
+  .topbar .who { min-inline-size: var(--toolbar-control-height); padding-inline: var(--space-4) var(--space-8); }
+  .topbar .avatar { inline-size: 30px; block-size: 30px; background: var(--primary); border-radius: var(--radius-sm); }
+  .topbar .who-name { color: var(--card-bg); }
+  .topbar .who-role { color: var(--ink-text); }
+  .topbar .topbar-sign-out { white-space: nowrap; }
+  .topbar .topbar-sign-out svg { inline-size: 16px; block-size: 16px; flex: none; }
+  .topbar :deep(.finance-trigger) { white-space: nowrap; }
+}
+@media (768px <= width < 1300px) {
+  .topbar .who { justify-content: center; padding: 0; flex: 0 0 var(--toolbar-control-height); }
+  .topbar :is(.who-text, .active-company-badge), .topbar .workspace-location:has(.mobile-company) .workspace-location-group { display: none; }
+  .topbar .workspace-location:has(.mobile-company) { display: grid; gap: 0; }
+  .mobile-company { display: block; }
+}
+@media (min-width: 1025px) {
+  .topbar { --toolbar-control-height: 2.5rem; }
 }
 .owner-location { min-width: 0; text-align: right; overflow-wrap: anywhere; }
 .owner-location span { display: block; font-size: 12px; }
 .platform-shell .owner-location { line-height: 1.3; }
 .platform-shell .owner-location span { font-size: var(--platform-caption-size); }
 
-.sidebar-nav-link {
-  display: flex !important;
-  align-items: center !important;
-  gap: 10px !important;
-  padding: 8px 12px !important;
-  border-radius: 8px !important;
-  color: var(--ink-text) !important;
-  font-size: 13.5px !important;
-  font-weight: 500 !important;
-  text-decoration: none !important;
-  transition: background-color 0.15s ease, color 0.15s ease !important;
-}
-.sidebar-nav-link::before {
-  display: none !important;
-}
-
-.sidebar-nav-icon {
-  width: 17px;
-  height: 17px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  color: var(--ink-text);
-  transition: color 0.15s ease;
-}
-.sidebar-nav-icon :deep(svg) {
-  width: 16px;
-  height: 16px;
-}
-
-.sidebar-nav-title {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.sidebar-nav-link:hover {
-  background: var(--ink-raised) !important;
-  color: var(--card-bg) !important;
-}
-.sidebar-nav-link:hover .sidebar-nav-icon {
-  color: var(--card-bg);
-}
-
-.sidebar-nav-link.router-link-exact-active {
-  background: var(--ink-raised) !important;
-  color: var(--card-bg) !important;
-  font-weight: 600 !important;
-}
-.sidebar-nav-link.router-link-exact-active .sidebar-nav-icon {
-  color: var(--card-bg);
-}
-
-.sidebar-footer {
-  margin-top: auto;
-  padding: 12px 14px;
-  border-top: 1px solid var(--sidebar-border);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--ink);
-}
-
-.sidebar-user-card {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  text-decoration: none;
-  min-width: 0;
-  flex: 1;
-}
-
-.sidebar-avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: var(--primary);
-  color: var(--card-bg);
-  font-size: 11.5px;
-  font-weight: 700;
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  box-shadow: 0 0 0 1.5px var(--ink-accent);
-}
-
-.sidebar-user-meta {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.sidebar-user-name {
-  color: var(--card-bg);
-  font-size: 12.5px;
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.sidebar-user-role {
-  color: var(--ink-text);
-  font-size: 11px;
-  text-transform: capitalize;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.sidebar-logout-btn {
-  width: 28px;
-  height: 28px;
-  display: grid;
-  place-items: center;
-  background: transparent;
-  border: none;
-  color: var(--ink-text);
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  flex-shrink: 0;
-}
-.sidebar-logout-btn:hover {
-  background: var(--ink-raised);
-  color: var(--bad-bg);
-}
-.sidebar-logout-btn svg {
-  width: 15px;
-  height: 15px;
-}
-
 .active-company-badge {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  background: var(--card-bg);
-  border: 1px solid var(--line);
-  padding: 4px 10px 4px 8px;
-  border-radius: 999px;
-  font-size: 12.5px;
+  gap: var(--space-8);
+  border: 1px solid var(--toolbar-border);
+  padding: var(--space-4) var(--space-12);
+  border-radius: var(--radius-sm);
+  min-block-size: var(--toolbar-control-height);
+  max-inline-size: min(27%, 17rem);
+  font-size: .8125rem;
   font-weight: 600;
-  color: var(--text);
-  box-shadow: var(--shadow-card);
+  color: var(--ink-text);
+  min-inline-size: 0;
 }
-
-.company-badge-pulse {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--ok-line);
-  box-shadow: 0 0 8px var(--ok-line);
-}
-
-.company-badge-icon {
-  font-size: 13px;
-  line-height: 1;
+.active-company-badge svg {
+  inline-size: 16px;
+  block-size: 16px;
+  flex: none;
 }
 
 .company-badge-name {
-  max-width: 170px;
+  min-inline-size: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.switch-badge-link {
-  font-size: 11px;
-  font-weight: 650;
-  color: var(--primary);
-  text-decoration: none;
-  background: var(--primary-soft);
-  padding: 2px 8px;
-  border-radius: 999px;
-  margin-left: 2px;
-  transition: all 0.15s ease;
-}
-.switch-badge-link:hover {
-  background: var(--primary);
-  color: var(--card-bg);
 }
 
 .workspace-location {
@@ -456,8 +384,9 @@ onUnmounted(() => clearInterval(timer))
 }
 
 .workspace-location-group {
-  color: var(--muted);
+  color: var(--ink-text);
   font-weight: 500;
+  flex-shrink: 0;
 }
 
 .breadcrumb-sep {
