@@ -5,7 +5,7 @@
 
 ---
 
-## 1. System Overview & Capabilities
+## 1. System Overview & Dual-Plane Capabilities
 
 The platform operates on a **Dual-Plane Architecture**:
 
@@ -128,7 +128,7 @@ sequenceDiagram
 | **Charts & Styling** | Chart.js & Design System | **Chart.js 4.4**, Custom Obsidian & Alabaster Design System |
 
 ### Codebase Scale
-* **123 Java Source Files** across 15 modular packages in `backend/src/main/java/com/hrms/`.
+* **123 Java Source Files** in `backend/src/` (configured with `<sourceDirectory>src</sourceDirectory>`).
 * **31 Vue Single-File Components** in `frontend/src/`.
 * **39 Relational Tables** in PostgreSQL.
 * **50+ Authenticated REST Endpoints**.
@@ -136,6 +136,8 @@ sequenceDiagram
 ---
 
 ## 5. Complete Database Schema Catalog (39 Tables)
+
+The database schema is managed via 7 Flyway migrations (`V1__init.sql` through `V7__local_platform_auth.sql`):
 
 ### Tenancy & Platform Core
 1. **`company`**: Organization registry (`id`, `name`, `code`, `status`, `timezone`, `currency`, `created_at`).
@@ -195,32 +197,31 @@ hr/
 │   ├── pom.xml                                # Spring Boot dependencies & build config
 │   ├── application-local.properties           # Local DB credentials & JWT secret keys
 │   └── src/
-│       └── main/
-│           ├── java/com/hrms/
-│           │   ├── HrmsApplication.java       # Main launcher
-│           │   ├── modules/
-│           │   │   ├── admin/                 # Users, roles, permissions, company
-│           │   │   ├── attendance/            # Attendance records, shifts, summary
-│           │   │   ├── audit/                 # Audit interceptors & logs
-│           │   │   ├── auth/                  # Workspace auth & company switcher
-│           │   │   ├── dashboard/             # KPI analytics
-│           │   │   ├── employee/              # Employees, org hierarchy, bank details
-│           │   │   ├── expense/               # Claims, advances
-│           │   │   ├── leave/                 # Leave types, allocations, requests
-│           │   │   ├── notifications/         # In-app notifications
-│           │   │   ├── payroll/               # Structures, runs, slips, tax
-│           │   │   ├── performance/           # Cycles, goals, appraisals
-│           │   │   ├── platform/              # Control tower, registry, platform auth
-│           │   │   └── recruitment/           # Jobs, applicants, interviews
-│           │   └── shared/
-│           │       ├── common/                # ApiException, global handler
-│           │       ├── config/                # Isolation guards, security filters
-│           │       ├── crud/                  # Generic CRUD delegates
-│           │       ├── security/              # Dual JWT, CompanySessions, FinanceControls
-│           │       └── tenancy/               # TenantDatabaseScope, CompanyTenancy
-│           └── resources/
-│               ├── application.yml            # Default Spring configuration
-│               └── db/migration/              # Flyway SQL migrations (V1 to V7)
+│       ├── app/
+│       │   └── HrmsApplication.java           # Spring Boot main launcher
+│       ├── modules/
+│       │   ├── admin/                         # Users, roles, permissions, company
+│       │   ├── attendance/                    # Attendance records, shifts, summary
+│       │   ├── audit/                         # Audit interceptors & logs
+│       │   ├── auth/                          # Workspace auth & company switcher
+│       │   ├── dashboard/                     # KPI analytics
+│       │   ├── employee/                      # Employees, org hierarchy, bank details
+│       │   ├── expense/                       # Claims, advances
+│       │   ├── leave/                         # Leave types, allocations, requests
+│       │   ├── notifications/                 # In-app notifications
+│       │   ├── payroll/                       # Structures, runs, slips, tax
+│       │   ├── performance/                   # Cycles, goals, appraisals
+│       │   ├── platform/                      # Control tower, registry, platform auth
+│       │   ├── recruitment/                   # Jobs, applicants, interviews
+│       │   └── selfservice/                   # Employee personal space
+│       ├── shared/
+│       │   ├── common/                        # ApiException, global handler, CrudController
+│       │   ├── config/                        # Isolation guards, web configuration
+│       │   ├── security/                      # Dual JWT, CompanySessions, FinanceControls
+│       │   └── tenancy/                       # TenantDatabaseScope, CompanyTenancy
+│       └── resources/
+│           ├── application.yml                # Default Spring configuration
+│           └── db/migration/                  # Flyway SQL migrations (V1 to V7)
 │
 └── frontend/
     ├── package.json                           # Dependencies (Vue 3, Vite, Axios, Chart.js)
@@ -281,9 +282,9 @@ Both the frontend and backend have been built and verified with zero errors:
 ```powershell
 # Verify frontend production build
 npm --prefix frontend run build
-# Result: 183 modules transformed, built in 2.37s (0 errors)
+# Result: 186 modules transformed, built in 4.25s (0 errors)
 
 # Verify backend compilation
 .\backend\mvn.cmd -f backend\pom.xml compile
-# Result: 123 source files compiled, BUILD SUCCESS (0 errors)
+# Result: BUILD SUCCESS in 3.44s (0 errors)
 ```

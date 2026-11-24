@@ -12,6 +12,7 @@ public enum PlatformRole {
                     || ("PUT".equals(method) && path.matches("/api/platform/access/[0-9a-fA-F-]{36}"));
         }
         if ("GET".equals(method) && "/api/platform/dashboard".equals(path)) return true;
+        if ("GET".equals(method) && "/api/platform/companies/form-options".equals(path)) return true;
         if ("/api/platform/companies".equals(path)) return "GET".equals(method) || "POST".equals(method);
         String company = "/api/platform/companies/[0-9a-fA-F-]{36}";
         return (("GET".equals(method) || "PUT".equals(method)) && path.matches(company))

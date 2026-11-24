@@ -86,7 +86,6 @@ async function loadQueue() {
 }
 
 function openQueue() {
-  if (queue.value.open) return
   rows.value = []
   queue.value.showModal()
   loadQueue()
@@ -111,7 +110,6 @@ onBeforeUnmount(() => {
   financeChallenges.removeEventListener('finance-challenge', challenge)
   clear()
 })
-defineExpose({ openQueue })
 </script>
 
 <template>

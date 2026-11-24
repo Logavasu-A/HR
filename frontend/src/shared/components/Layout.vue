@@ -1,13 +1,15 @@
 <script setup>
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { list as listNotifications } from '@/modules/notifications/services/notificationService'
-import { getSummary } from '@/modules/dashboard/services/dashboardService'
-import { auth, isEmployee } from '@/shared/auth'
+import { refreshUnread, unreadCount } from '@/modules/notifications/services/notificationService'
+import { auth, companyHomePath, isEmployee } from '@/shared/auth'
 import { useWorkspace } from '@/shared/workspaceContext'
 import { logout as endSession } from '@/modules/auth/services/authService'
 import { resources, selfResources } from '@/modules'
 import FinanceAccess from '@/shared/components/FinanceAccess.vue'
+import AccountMenu from '@/shared/components/AccountMenu.vue'
+import SignOutDialog from '@/shared/components/SignOutDialog.vue'
+import PageBackButton from '@/shared/components/PageBackButton.vue'
 import SidebarNavigation from '@/shared/components/SidebarNavigation.vue'
 import { pretty } from '@/shared/utils'
 
@@ -19,23 +21,22 @@ const emit = defineEmits(['platform-logout'])
 
 const router = useRouter()
 const route = useRoute()
-const { owner, can, path, api, companyName: workspaceCompanyName, companyDetails } = useWorkspace()
-const unread = ref(0)
-const pendingLeaves = ref(0)
+const { owner, can, path } = useWorkspace()
+const backFallback = computed(() => {
+  if (owner) return route.path === '/platform/workspace/dashboard' ? '/platform/control-tower' : '/platform/workspace/dashboard'
+  if (!props.platform) return companyHomePath()
+  const session = props.platformSession
+  if (!session) return ''
+  if (session.controlTower) return '/platform/control-tower'
+  return session.role === 'SECURITY_ADMINISTRATOR' ? '/platform/access' : '/platform/companies'
+})
 const menuOpen = ref(false)
 const menuButton = ref(null)
 const sidebar = ref(null)
-const financeAccess = ref(null)
 const mainContent = ref(null)
+const confirmingSignOut = ref(false)
+const signingOut = ref(false)
 const companyName = computed(() => !owner && !props.platform && (auth.user?.companyName || auth.user?.companyCode))
-const sidebarWorkspace = computed(() => props.platform ? 'Platform administration' : workspaceCompanyName || companyName.value)
-const sidebarScope = computed(() => {
-  if (props.platform) return `platform:${props.platformSession?.username || ''}`
-  if (owner) return `admin-view:${owner}:${companyDetails?.companyId || workspaceCompanyName}`
-  return `company:${auth.user?.companyId || auth.user?.companyCode || ''}:${auth.user?.id || auth.user?.username || ''}`
-})
-const showsFinance = computed(() => !props.platform && (owner || can('payroll:read') || can('payroll:write') ||
-  auth.user?.permissions?.includes('employee-bank:read') || isEmployee()))
 const displayName = computed(() => auth.user?.employeeName || auth.user?.username || '')
 const initialsFor = name => (name || '?').split(/\s+/).map(word => word[0]).slice(0, 2).join('').toUpperCase()
 const initials = computed(() => initialsFor(displayName.value))
@@ -43,14 +44,13 @@ const sidebarProfile = computed(() => {
   if (owner) return { name: owner, initials: initialsFor(owner), role: 'Super Admin · Admin View' }
   if (props.platform) {
     const session = props.platformSession
-    return session && { name: session.username, initials: initialsFor(session.username), role: pretty(session.role), signOut: true }
+    return session && { name: session.username, initials: initialsFor(session.username), role: pretty(session.role) }
   }
   return {
     name: displayName.value,
     initials: initials.value,
-    role: pretty(auth.user?.role).replace(/^Hr\b/, 'HR'),
+    role: auth.user?.role || '',
     accountLink: '/change-password',
-    signOut: true,
   }
 })
 let timer = null
@@ -71,7 +71,6 @@ const groups = computed(() => {
   const items = []
   if (can('dashboard:read')) items.push({ group: 'Overview', title: 'Dashboard', path: '/dashboard' })
   if (owner) items.push({ group: 'Overview', title: 'Company details', path: '/company-details' })
-  else items.push({ group: 'Overview', title: 'Notifications', path: '/notifications' })
   if (!owner && isEmployee()) {
     items.push({ group: 'My space', title: 'Home', path: '/my' })
     selfResources.forEach((r) => items.push(r))
@@ -117,61 +116,39 @@ function navigateFromSidebar() {
   nextTick(() => mainContent.value?.focus())
 }
 
-async function openSidebarFinance() {
-  const wasInDrawer = menuOpen.value
-  closeMenu(false)
-  await nextTick()
-  if (wasInDrawer) menuButton.value?.focus({ preventScroll: true })
-  financeAccess.value?.openQueue()
-}
-
 watch(menuOpen, open => document.documentElement.classList.toggle('navigation-locked', open), { flush: 'sync' })
 
-watch(() => route.path, () => {
-  closeMenu(false)
-  if (path('/leave-applications') === route.path) loadPendingLeaves()
-})
+watch(() => route.path, () => closeMenu(false))
 
-async function loadUnread() {
-  try {
-    const data = await listNotifications()
-    unread.value = data.unread
-  } catch {
-    // the bell is not essential; ignore failures here
-  }
+function loadUnread() {
+  if (!document.hidden) refreshUnread()
 }
 
 async function logout() {
-  await endSession().catch(() => {}) // Local sign-out also works when the server is unreachable.
-  router.replace('/login')
-}
-
-function sidebarLogout() {
-  if (props.platform) emit('platform-logout')
-  else logout()
-}
-
-async function loadPendingLeaves() {
-  if (props.platform || !can('dashboard:read') || !can('leave:read')) return
+  if (signingOut.value) return
+  signingOut.value = true
   try {
-    const summary = await getSummary(api)
-    pendingLeaves.value = summary.cards?.pendingLeaves || 0
-  } catch {
-    pendingLeaves.value = 0
+    await endSession().catch(() => {}) // Local sign-out also works when the server is unreachable.
+    await router.replace('/login')
+  } finally {
+    signingOut.value = false
+    confirmingSignOut.value = false
   }
+}
+
+function cancelSignOut() {
+  if (!signingOut.value) confirmingSignOut.value = false
 }
 
 onMounted(() => {
-  if (props.platform) return
-  const refreshBadges = () => {
-    if (!owner) loadUnread()
-    loadPendingLeaves()
-  }
-  refreshBadges()
-  timer = setInterval(refreshBadges, 60000)
+  if (props.platform || owner) return
+  loadUnread()
+  timer = setInterval(loadUnread, 15000)
+  window.addEventListener('focus', loadUnread)
 })
 onUnmounted(() => {
   clearInterval(timer)
+  window.removeEventListener('focus', loadUnread)
   if (menuOpen.value) document.documentElement.classList.remove('navigation-locked')
 })
 </script>
@@ -182,10 +159,8 @@ onUnmounted(() => {
     <div v-if="menuOpen" class="sidebar-overlay" aria-hidden="true" @click="closeMenu()"></div>
     <SidebarNavigation
       ref="sidebar" :groups="groups" :path="path" :profile="sidebarProfile" :platform="platform"
-      :workspace-name="sidebarWorkspace || ''" :preference-scope="sidebarScope" :finance="Boolean(showsFinance)"
-      :open="menuOpen" :pending-leaves="pendingLeaves" :unread="unread"
-      @open="menuOpen = true" @close="closeMenu()" @navigate="navigateFromSidebar" @logout="sidebarLogout"
-      @finance="openSidebarFinance"
+      :open="menuOpen"
+      @open="menuOpen = true" @close="closeMenu()" @navigate="navigateFromSidebar"
     />
 
     <div class="main" :inert="menuOpen">
@@ -198,6 +173,7 @@ onUnmounted(() => {
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"
             stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
         </button>
+        <PageBackButton class="topbar-back" :fallback="backFallback" />
         <div v-if="activeTitle" class="workspace-location">
           <span v-if="companyName" class="mobile-company">{{ companyName }}</span>
           <span v-if="platform || (activeGroup && activeGroup.name !== activeTitle)" class="workspace-location-group">
@@ -212,33 +188,22 @@ onUnmounted(() => {
             stroke-linejoin="round" aria-hidden="true"><path d="M4 21h16M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16M10 8h4m-4 4h4m-3 9v-5h2v5"/></svg>
           <span class="company-badge-name">{{ companyName }}</span>
         </div>
-        <FinanceAccess v-if="showsFinance" ref="financeAccess" />
-        <router-link v-if="!owner && !platform" to="/notifications" class="bell" :aria-label="unread ? `Notifications, ${unread} unread` : 'Notifications'" title="Notifications">
+        <FinanceAccess v-if="!platform && (owner || can('payroll:read') || can('payroll:write') || auth.user?.permissions?.includes('employee-bank:read') || isEmployee())" />
+        <router-link v-if="!owner && !platform" to="/notifications" class="bell" :aria-label="unreadCount ? `Notifications, ${unreadCount} unread` : 'Notifications'" title="Notifications">
           <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-          <span v-if="unread" class="count" aria-hidden="true">{{ unread > 99 ? '99+' : unread }}</span>
+          <span v-if="unreadCount > 0" class="count" aria-hidden="true">{{ unreadCount }}</span>
         </router-link>
-        <router-link v-if="!owner && !platform" to="/change-password" class="who" title="Account &amp; security" aria-label="Account &amp; security">
-          <span class="avatar">{{ initials }}</span>
-          <span class="who-text">
-            <span class="who-name">{{ displayName }}</span>
-            <span class="who-role">{{ String(auth.user?.role || '').toLowerCase().replace(/_/g, ' ') }}</span>
-          </span>
-        </router-link>
-        <span v-if="platformSession" class="owner-location">
-          <strong>{{ platformSession.username }}</strong>
-          <span class="muted">{{ pretty(platformSession.role) }}</span>
-        </span>
-        <button v-if="!owner && (!platform || platformSession)" class="btn small topbar-sign-out" type="button" @click="sidebarLogout">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
-            stroke-linejoin="round" aria-hidden="true"><path d="M10 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5m5 4 5 5-5 5m5-5H9"/></svg>
-          {{ platform ? 'Sign out' : 'Log out' }}
-        </button>
+        <AccountMenu v-if="platformSession" :name="platformSession.username" :role="pretty(platformSession.role)"
+          @sign-out="emit('platform-logout')" />
+        <AccountMenu v-else-if="!owner && !platform && displayName" :name="displayName" :initials="initials"
+          :role="pretty(auth.user?.role)" account-link="/change-password" @sign-out="confirmingSignOut = true" />
       </header>
       <slot name="before-content" />
       <main id="workspace-content" ref="mainContent" class="content" tabindex="-1">
         <slot />
       </main>
     </div>
+    <SignOutDialog v-if="confirmingSignOut" :busy="signingOut" @dismiss="cancelSignOut" @confirm="logout" />
   </div>
 </template>
 
@@ -255,7 +220,7 @@ onUnmounted(() => {
 .topbar > .workspace-location + .spacer { display: none; }
 .workspace-location-title, .mobile-company { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mobile-company { color: var(--ink-text); font-size: .75rem; }
-.topbar :is(.menu-btn, .bell, .who, .topbar-sign-out), .topbar :deep(.finance-trigger) {
+.topbar :is(.menu-btn, .bell), .topbar :deep(.finance-trigger) {
   min-block-size: var(--toolbar-control-height);
   border: 1px solid var(--toolbar-border);
   border-radius: var(--radius-sm);
@@ -263,12 +228,12 @@ onUnmounted(() => {
   color: var(--card-bg);
   box-shadow: none;
 }
-.topbar :is(.menu-btn, .bell, .who, .topbar-sign-out):is(:hover, :active, [aria-current="page"], [aria-expanded="true"]),
+.topbar :is(.menu-btn, .bell):is(:hover, :active, [aria-current="page"], [aria-expanded="true"]),
 .topbar :deep(.finance-trigger:is(:hover, :active)) {
   background: var(--primary);
   border-color: var(--ink-text);
 }
-.topbar :is(.menu-btn, .bell, .who, .topbar-sign-out):focus-visible, .topbar :deep(.finance-trigger:focus-visible) {
+.topbar :is(.menu-btn, .bell):focus-visible, .topbar :deep(.finance-trigger:focus-visible) {
   outline: 2px solid var(--ink-accent);
   outline-offset: 2px;
 }
@@ -283,10 +248,14 @@ onUnmounted(() => {
   font-variant-numeric: tabular-nums;
   line-height: 14px;
 }
-.topbar .avatar { box-shadow: none; }
 @media (width < 768px) {
   .topbar { flex-wrap: nowrap; min-block-size: var(--platform-topbar-height); padding-block: var(--space-8); }
   .topbar:has(.mobile-company) { flex-wrap: wrap; row-gap: var(--space-4); }
+  .topbar:has(.mobile-company) .topbar-back {
+    position: absolute;
+    inset-block-end: var(--space-8);
+    inset-inline-start: var(--content-gutter);
+  }
   .topbar .workspace-location { display: grid; flex: 1 1 auto; gap: 0; }
   .topbar .workspace-location:has(.mobile-company) { display: contents; }
   .workspace-location-title {
@@ -300,15 +269,17 @@ onUnmounted(() => {
     display: block;
     order: 1;
     flex: 0 0 100%;
-    padding-block-start: var(--space-4);
+    align-content: center;
+    min-block-size: calc(var(--tap-target) + var(--space-4));
+    padding-inline-start: calc(var(--tap-target) + var(--space-8));
     border-block-start: 1px solid var(--ink-raised);
     white-space: normal;
     overflow-wrap: anywhere;
   }
-  .topbar :is(.workspace-location-group, .active-company-badge, .owner-location, .topbar-sign-out, .workspace-location + .spacer) {
+  .topbar :is(.workspace-location-group, .active-company-badge, .workspace-location + .spacer) {
     display: none;
   }
-  .topbar :is(.menu-btn, .bell, .who), .topbar :deep(.finance-trigger) {
+  .topbar :is(.menu-btn, .bell), .topbar :deep(.finance-trigger) {
     display: inline-grid;
     place-items: center;
     flex: 0 0 var(--tap-target);
@@ -316,39 +287,19 @@ onUnmounted(() => {
     block-size: var(--tap-target);
     padding: 0;
   }
-  .topbar .avatar {
-    inline-size: 100%;
-    block-size: 100%;
-    border-radius: inherit;
-    background: transparent;
-    color: inherit;
-  }
 }
 @media (min-width: 768px) {
   .topbar { min-block-size: 4rem; padding-block: var(--space-8); }
-  .owner-location { margin-inline-start: auto; }
-  .topbar .who { min-inline-size: var(--toolbar-control-height); padding-inline: var(--space-4) var(--space-8); }
-  .topbar .avatar { inline-size: 30px; block-size: 30px; background: var(--primary); border-radius: var(--radius-sm); }
-  .topbar .who-name { color: var(--card-bg); }
-  .topbar .who-role { color: var(--ink-text); }
-  .topbar .topbar-sign-out { white-space: nowrap; }
-  .topbar .topbar-sign-out svg { inline-size: 16px; block-size: 16px; flex: none; }
   .topbar :deep(.finance-trigger) { white-space: nowrap; }
 }
 @media (768px <= width < 1300px) {
-  .topbar .who { justify-content: center; padding: 0; flex: 0 0 var(--toolbar-control-height); }
-  .topbar :is(.who-text, .active-company-badge), .topbar .workspace-location:has(.mobile-company) .workspace-location-group { display: none; }
+  .topbar .active-company-badge, .topbar .workspace-location:has(.mobile-company) .workspace-location-group { display: none; }
   .topbar .workspace-location:has(.mobile-company) { display: grid; gap: 0; }
   .mobile-company { display: block; }
 }
 @media (min-width: 1025px) {
   .topbar { --toolbar-control-height: 2.5rem; }
 }
-.owner-location { min-width: 0; text-align: right; overflow-wrap: anywhere; }
-.owner-location span { display: block; font-size: 12px; }
-.platform-shell .owner-location { line-height: 1.3; }
-.platform-shell .owner-location span { font-size: var(--platform-caption-size); }
-
 .active-company-badge {
   display: inline-flex;
   align-items: center;

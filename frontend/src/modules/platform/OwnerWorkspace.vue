@@ -1,11 +1,13 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
+import { pretty } from '@/shared/utils'
 import OwnerWorkspaceContent from './OwnerWorkspaceContent.vue'
 import { createWorkspaceClient } from './workspaceClient.js'
 import PlatformState from './PlatformState.vue'
 import PlatformLayout from './PlatformLayout.vue'
 import PlatformPageHeader from './PlatformPageHeader.vue'
+import WorkspaceCompanyPicker from './WorkspaceCompanyPicker.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -13,9 +15,9 @@ const token = sessionStorage.getItem('hrms_platform_token')
 const owner = ref('')
 const companies = ref([])
 const selectedCompany = ref('')
-const companySearch = ref('')
+const companyStatus = ref('')
 const pickerOpen = ref(false)
-const companySearchField = ref(null)
+const companyStatusField = ref(null)
 const closing = ref(false)
 const reason = ref('')
 const reasonField = ref(null)
@@ -29,13 +31,14 @@ let disposed = false
 
 const companyMark = computed(() => active.value?.workspace.name.split(/\s+/).slice(0, 2)
   .map(word => word[0]).join('').toUpperCase())
-const matches = computed(() => {
-  const term = companySearch.value.trim().toLowerCase()
-  return companies.value.filter(row => `${row.name} ${row.code} ${row.status}`.toLowerCase().includes(term))
-})
-const companyOptions = computed(() => companies.value.filter(row =>
-  row.id === selectedCompany.value || matches.value.includes(row)))
+const companyStatuses = computed(() => [...new Set(companies.value.map(company => company.status))].sort())
+const companyOptions = computed(() => companyStatus.value
+  ? companies.value.filter(company => company.status === companyStatus.value)
+  : companies.value)
 const target = computed(() => companies.value.find(row => row.id === selectedCompany.value))
+watch(companyStatus, status => {
+  if (status && target.value?.status !== status) selectedCompany.value = ''
+})
 const layoutProps = computed(() => active.value ? {
   workspace: active.value.workspace,
   owner: owner.value,
@@ -47,7 +50,7 @@ async function togglePicker() {
   pickerOpen.value = !pickerOpen.value
   if (pickerOpen.value) {
     await nextTick()
-    companySearchField.value?.focus()
+    companyStatusField.value?.focus()
   }
 }
 
@@ -105,7 +108,7 @@ function show(workspace) {
   known.value = workspace
   active.value = { workspace, client }
   selectedCompany.value = workspace.companyId
-  companySearch.value = ''
+  companyStatus.value = ''
   pickerOpen.value = false
   expiryTimer = setTimeout(() => invalidated(workspace.id, 401),
     Math.max(0, new Date(workspace.expiresAt).getTime() - Date.now()))
@@ -236,25 +239,22 @@ onMounted(initialize)
       <form v-if="companies.length" v-show="!active || pickerOpen" id="workspace-picker" class="workspace-switch"
         :aria-busy="busy" @submit.prevent="enter">
         <div class="field">
-          <label for="workspace-company-search">Find a company</label>
-          <input id="workspace-company-search" ref="companySearchField" v-model="companySearch" type="search" placeholder="Name, code, or status" :disabled="busy" />
+          <label for="workspace-company-status">Company status</label>
+          <select id="workspace-company-status" ref="companyStatusField" v-model="companyStatus" :disabled="busy">
+            <option value="">All statuses</option>
+            <option v-for="status in companyStatuses" :key="status" :value="status">{{ pretty(status) }}</option>
+          </select>
         </div>
         <div class="field">
-          <label for="owner-workspace-company">Company</label>
-          <select id="owner-workspace-company" v-model="selectedCompany" :disabled="busy" required>
-            <option disabled value="">Select company</option>
-            <option v-for="company in companyOptions" :key="company.id" :value="company.id">
-              {{ company.name }}{{ company.status === 'ACTIVE' ? '' : ` (${company.status.toLowerCase()})` }}
-            </option>
-          </select>
+          <label id="workspace-company-label" for="owner-workspace-company">Company</label>
+          <WorkspaceCompanyPicker v-model="selectedCompany" :companies="companyOptions" :disabled="busy" />
         </div>
         <div class="field workspace-reason">
           <label for="owner-workspace-reason">Access reason</label>
           <input id="owner-workspace-reason" ref="reasonField" v-model="reason" :disabled="busy" required minlength="5" maxlength="300"
             placeholder="Describe why you need access" />
         </div>
-        <button class="btn primary" :disabled="busy" type="submit">{{ active ? 'Switch company' : 'Open Admin View' }}</button>
-        <small v-if="companySearch && !matches.length" class="muted workspace-hint" role="status">No companies match your search.</small>
+        <button class="btn primary" :disabled="busy || !selectedCompany" type="submit">{{ active ? 'Switch company' : 'Open Admin View' }}</button>
         <small v-if="target && target.status !== 'ACTIVE'" class="muted workspace-hint">{{ target.name }} opens in read-only mode.</small>
       </form>
     </header>

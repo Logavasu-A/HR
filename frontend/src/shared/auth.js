@@ -44,3 +44,8 @@ export function can(permission) {
 export function isEmployee() {
   return auth.user?.employeeId != null
 }
+
+export function companyHomePath() {
+  if (can('dashboard:read')) return '/dashboard'
+  return isEmployee() ? '/my' : '/change-password'
+}

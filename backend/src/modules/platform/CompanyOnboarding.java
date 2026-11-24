@@ -4,10 +4,12 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.text.Normalizer;
 import java.time.ZoneId;
 import java.util.Base64;
 import java.util.Currency;
 import java.util.HexFormat;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
@@ -16,6 +18,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,7 +36,7 @@ public class CompanyOnboarding {
     private final SecureRandom random = new SecureRandom();
 
     public record CompanyDetails(@NotBlank @Size(max = 160) String name,
-                                 @NotBlank @Pattern(regexp = "[a-z0-9][a-z0-9-]{1,39}") String code,
+                                 @Pattern(regexp = "[a-z0-9][a-z0-9-]{1,39}") String code,
                                  @NotBlank @Email @Size(max = 254) String contactEmail,
                                  @NotBlank @Size(max = 80) String timezone,
                                  @NotBlank @Pattern(regexp = "[A-Z]{3}") String currency) {}
@@ -42,17 +45,45 @@ public class CompanyOnboarding {
     @Transactional
     public Invitation create(CompanyDetails details, String adminEmail, String actor) {
         validateLocale(details);
-        UUID companyId = jdbc.queryForObject("""
-                insert into company (name, code, contact_email, timezone, currency)
-                values (?, ?, ?, ?, ?) returning id
-                """, UUID.class, details.name().trim(), details.code(), details.contactEmail(),
-                details.timezone(), details.currency());
+        String base = details.code() == null ? generatedCode(details.name()) : details.code();
+        UUID companyId;
+        int attempt = 1;
+        while (true) {
+            String code = attempt == 1 ? base : base + "-" + attempt;
+            // Let PostgreSQL arbitrate collisions, including concurrent creates.
+            companyId = jdbc.query("""
+                    insert into company (name, code, contact_email, timezone, currency)
+                    values (?, ?, ?, ?, ?) on conflict do nothing returning id
+                    """, (rs, row) -> rs.getObject(1, UUID.class), details.name().trim(), code,
+                    details.contactEmail(), details.timezone(), details.currency()).stream().findFirst().orElse(null);
+            if (companyId != null) break;
+            if (details.code() != null) throw new ApiException(HttpStatus.CONFLICT, "This company code is already in use");
+            attempt++;
+        }
         tenantScope.bind(companyId);
         Long roleId = jdbc.queryForObject("insert into role (name, tenant_id) values ('Company Admin', ?) returning id",
                 Long.class, companyId);
         jdbc.update("insert into role_permission (role_id, permission) values (?, '*')", roleId);
         audit(actor, companyId, "CREATE_COMPANY");
         return invite(companyId, adminEmail, actor);
+    }
+
+    private static String generatedCode(String name) {
+        String[] words = Normalizer.normalize(name, Normalizer.Form.NFKD).replaceAll("\\p{M}", "")
+                .toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", " ").strip().split(" ");
+        if (words.length == 1) {
+            String word = words[0];
+            return switch (word.length()) {
+                case 0 -> "co";
+                case 1 -> word + "1";
+                default -> word.substring(0, Math.min(word.length(), 4));
+            };
+        }
+        StringBuilder initials = new StringBuilder();
+        for (int i = 0; i < Math.min(words.length, 6); i++) {
+            initials.append(words[i].charAt(0));
+        }
+        return initials.toString();
     }
 
     @Transactional
@@ -125,6 +156,7 @@ public class CompanyOnboarding {
 
     @Transactional
     public void edit(UUID companyId, CompanyDetails details, String actor) {
+        if (details.code() == null) throw ApiException.badRequest("Company code is required");
         validateLocale(details);
         lockCompany(companyId);
         jdbc.update("update company set name = ?, code = ?, contact_email = ?, timezone = ?, currency = ? where id = ?",

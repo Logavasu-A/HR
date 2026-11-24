@@ -63,10 +63,25 @@
   --success-soft: var(--ok-bg);
   --success-text: var(--ok-text);
   --warn-soft: var(--warn-bg);
-  --sidebar: var(--ink);
-  --sidebar-border: var(--ink-raised);
-  --sidebar-text: var(--ink-text);
+  --sidebar: var(--sb-bg-mid);
+  --sidebar-border: var(--sb-border);
+  --sidebar-text: var(--sb-text-2);
   --sidebar-rail-width: 4.5rem;
+  --sb-bg-start: #0b4c42;
+  --sb-bg-mid: #073129;
+  --sb-bg-end: #031a17;
+  --sb-text: #eefaf6;
+  --sb-text-2: #cfe7e0;
+  --sb-muted: #7fb3a8;
+  --sb-border: rgba(255,255,255,0.13);
+  --sb-hover: rgba(255,255,255,0.07);
+  --sb-active-bg: rgba(255,255,255,0.11);
+  --sb-active-border: rgba(255,255,255,0.20);
+  --sb-accent: #f2c35b;
+  --sb-badge-bg: #f2c35b;
+  --sb-badge-text: #3a2a05;
+  --sb-avatar-bg: #5eead4;
+  --sb-avatar-text: #06302a;
   --tap-target: 2.75rem;
   --radius: 12px;
   --radius-sm: 8px;
@@ -197,13 +212,12 @@ a { color: var(--primary); }
   background: var(--ink);
   border-bottom: 1px solid var(--ink);
   color: var(--ink-text);
-  box-shadow: inset 0 -3px 0 var(--ink-accent);
+  box-shadow: inset 0 -3px 0 var(--sb-accent);
   padding: 10px max(var(--content-gutter), calc((100% - var(--content-width)) / 2 + var(--content-gutter)));
 }
 .topbar a { text-decoration: none; color: var(--card-bg); }
 .topbar :is(.workspace-location, .workspace-location span span, .muted) { color: var(--ink-text); }
-.topbar :is(.workspace-location-title, .owner-location strong) { color: var(--card-bg); }
-.topbar .avatar { box-shadow: 0 0 0 1px var(--ink-accent); }
+.topbar .workspace-location-title { color: var(--card-bg); }
 .topbar > :is(.bell, .btn) { flex-shrink: 0; }
 .workspace-location {
   display: flex;
@@ -227,16 +241,10 @@ a { color: var(--primary); }
   background: var(--danger); color: var(--card-bg); border-radius: 10px; padding: 0 5px; font-size: 11px; font-weight: 600; line-height: 18px;
   border: 2px solid var(--card-bg);
 }
-.who { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 3px 10px 3px 3px; border-radius: 24px; border: 1px solid var(--line); background: var(--panel); transition: background 0.15s, border-color 0.15s; }
-.who:hover { background: var(--page-bg); border-color: var(--line-strong); }
 .avatar {
   width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; flex-shrink: 0;
   background: var(--primary); color: var(--card-bg); font-weight: 600; font-size: 13px;
 }
-.who-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
-.who-text > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.who-name { font-weight: 600; font-size: 13px; color: var(--text); }
-.who-role { font-size: 11px; color: var(--muted); text-transform: capitalize; }
 .content { padding: var(--content-gutter); max-width: min(100%, var(--content-width)); min-width: 0; width: 100%; margin: 0 auto; animation: fade-in 0.25s ease; }
 
 @keyframes fade-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
@@ -656,11 +664,6 @@ dl.details dd { margin: 0; font-weight: 500; color: var(--text); }
 .note.unread { border-left: 3px solid var(--primary); background: var(--primary-tint); }
 .note-title { font-weight: 600; color: var(--text); }
 
-/* ---------- payslip ---------- */
-.slip-head { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; overflow-wrap: anywhere; }
-.slip-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: start; }
-.net { font-size: 20px; font-weight: 700; text-align: right; margin-top: 16px; color: var(--text); }
-
 /* ---------- small screens ---------- */
 @media (width < 768px) {
   :root { --content-gutter: 16px; }
@@ -673,8 +676,6 @@ dl.details dd { margin: 0; font-weight: 500; color: var(--text); }
   .sidebar.open { display: flex; }
   .sidebar-overlay { display: block; position: fixed; z-index: 22; inset: 0; background: var(--scrim); }
   .menu-btn { display: inline-flex; }
-  .who-text { display: none; }
-  .who { padding: 3px; }
   .crud-heading { gap: var(--space-12); }
   .crud-heading > .spacer { display: none; }
   .crud-title-wrap, .crud-toolbar { flex-basis: 100%; }
@@ -686,8 +687,6 @@ dl.details dd { margin: 0; font-weight: 500; color: var(--text); }
 }
 
 @media (max-width: 560px) {
-  .slip-cols { grid-template-columns: minmax(0, 1fr); }
-  .slip-head { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .modal-foot > .btn { flex: 1 1 auto; }
   .period-heading .spacer { display: none; }
   :is(form, .toolbar) :is(input:not([type="checkbox"]), select, textarea) { font-size: 16px; }
@@ -698,7 +697,7 @@ dl.details dd { margin: 0; font-weight: 500; color: var(--text); }
     --platform-control-default: var(--tap-target);
     --platform-control-small: var(--tap-target);
   }
-  :is(.btn, .page-btn, .bell, .who, .modal-close-btn, .action-menu-btn, .action-menu-item),
+  :is(.btn, .page-btn, .bell, .modal-close-btn, .action-menu-btn, .action-menu-item),
   :is(.platform-shell, .admin-workspace-shell) .btn.small {
     min-inline-size: var(--tap-target);
     min-block-size: var(--tap-target);
@@ -714,15 +713,13 @@ dl.details dd { margin: 0; font-weight: 500; color: var(--text); }
 
 /* ---------- printing a payslip ---------- */
 @media print {
-  body * { visibility: hidden; }
-  .printable, .printable * { visibility: visible; }
-  .modal.printable {
-    position: absolute; inset: 0 auto auto 0; width: 100%; max-block-size: none;
-    margin: 0; overflow: visible; border: 0; box-shadow: none;
+  body:has(.modal.printable[open]) > :not(.modal.printable[open]) { display: none; }
+  .modal.printable[open] {
+    position: static; inline-size: 100%; max-block-size: none;
+    margin: 0; overflow: visible; border: 0; box-shadow: none; animation: none;
   }
-  .printable::backdrop, .printable .modal-foot { display: none; }
+  .printable::backdrop, .printable .modal-head, .printable .modal-foot { display: none; }
   .printable .modal-panel { display: block; max-block-size: none; }
-  .printable .modal-body { overflow: visible; }
-  .printable .slip-cols { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .printable .modal-body { padding: 0; overflow: visible; }
 }
 .nowrap { white-space: nowrap; }

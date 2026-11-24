@@ -1,9 +1,10 @@
 <script setup>
-import { nextTick, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { pretty } from '@/shared/utils'
 import PlatformState from './PlatformState.vue'
 import PlatformPageHeader from './PlatformPageHeader.vue'
+import CompanyOptionPicker from './CompanyOptionPicker.vue'
 
 const router = useRouter()
 const search = ref('')
@@ -24,13 +25,29 @@ const busy = ref(false)
 const security = ref(null)
 const editorHeading = ref(null)
 const detailHeading = ref(null)
+const localeOptions = ref(null)
+const localeLoading = ref(false)
+const localeError = ref('')
+const currencyNames = new Intl.DisplayNames(undefined, { type: 'currency' })
+const choices = computed(() => ({
+  timezone: (localeOptions.value?.timezones ?? []).map(value => ({ value, label: value.replaceAll('_', ' ') })),
+  currency: (localeOptions.value?.currencies ?? []).map(value => ({ value, label: `${value} · ${currencyNames.of(value)}` })),
+}))
+const codePreview = computed(() => {
+  const name = form.value?.name
+  if (!name) return ''
+  const words = name.normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase().match(/[a-z0-9]+/g) ?? []
+  if (!words.length) return 'co'
+  if (words.length > 1) return words.slice(0, 6).map(word => word[0]).join('')
+  return words[0].length === 1 ? words[0] + '1' : words[0].slice(0, 4)
+})
 
 const fields = [
   { key: 'name', label: 'Company name', max: 160 },
   { key: 'code', label: 'Company code', max: 40, pattern: '[a-z0-9][a-z0-9\\-]{1,39}' },
   { key: 'contactEmail', label: 'Contact email', type: 'email', max: 254 },
-  { key: 'timezone', label: 'Time zone', max: 80 },
-  { key: 'currency', label: 'Currency', max: 3, pattern: '[A-Z]{3}' },
+  { key: 'timezone', label: 'Time zone', placeholder: 'Search time zones' },
+  { key: 'currency', label: 'Currency', placeholder: 'Search currency names or codes' },
 ]
 const metrics = { total: 'Companies', pending: 'Pending', active: 'Active', suspended: 'Suspended' }
 
@@ -93,6 +110,19 @@ function activityPage(action, page) {
 async function loadActivity(page = 0, action = activityAction.value) {
   activity.value = await activityPage(action, page)
   activityAction.value = action
+}
+
+async function loadLocaleOptions() {
+  if (localeOptions.value || localeLoading.value) return
+  localeError.value = ''
+  localeLoading.value = true
+  try {
+    localeOptions.value = await platform('/companies/form-options')
+  } catch (failure) {
+    localeError.value = failure.message
+  } finally {
+    localeLoading.value = false
+  }
 }
 
 async function refresh(page = results.value?.page ?? 0) {
@@ -162,7 +192,7 @@ async function select(id) {
 function add() {
   selection.value = null
   email.value = ''
-  form.value = { name: '', code: '', contactEmail: '', timezone: 'UTC', currency: 'USD' }
+  form.value = { name: '', contactEmail: '', timezone: 'UTC', currency: 'USD' }
 }
 
 function edit() {
@@ -174,6 +204,7 @@ function edit() {
 }
 
 function save() {
+  if (!localeOptions.value) return
   return run(async () => {
     const id = selection.value?.id
     if (id) {
@@ -214,6 +245,7 @@ async function showCompany(id) {
 
 async function showEditor(open) {
   open()
+  loadLocaleOptions()
   await nextTick()
   editorHeading.value?.focus()
 }
@@ -247,16 +279,28 @@ onMounted(start)
         <h2 ref="editorHeading" tabindex="-1">{{ selection ? 'Edit company' : 'Add company' }}</h2>
         <div class="form-grid">
           <div v-for="field in fields" :key="field.key" class="field">
-            <label :for="field.key">{{ field.label }}</label>
-            <input :id="field.key" v-model.trim="form[field.key]" :type="field.type || 'text'" :pattern="field.pattern" :maxlength="field.max" required />
+            <label :id="field.key + '-label'" :for="field.key">{{ field.label }}</label>
+            <CompanyOptionPicker v-if="field.placeholder" :id="field.key" v-model="form[field.key]"
+              :options="choices[field.key]" :placeholder="field.placeholder" :disabled="busy || !localeOptions" />
+            <template v-else-if="field.key === 'code' && !selection">
+              <input id="code" :value="codePreview" placeholder="Short code generated automatically" aria-describedby="generated-code-hint" readonly />
+              <small id="generated-code-hint" class="muted">If the short code is taken, a number is added.</small>
+            </template>
+            <input v-else :id="field.key" v-model.trim="form[field.key]" :type="field.type || 'text'"
+              :pattern="field.pattern" :maxlength="field.max" required />
           </div>
           <div v-if="!selection" class="field">
             <label for="admin-email">First admin’s email</label>
             <input id="admin-email" v-model.trim="email" type="email" maxlength="80" required />
           </div>
         </div>
+        <p v-if="localeLoading" class="muted" role="status">Loading time zones and currencies…</p>
+        <div v-else-if="localeError" class="owner-actions owner-editor-actions">
+          <span role="alert">Could not load time zones and currencies. {{ localeError }}</span>
+          <button class="btn small" type="button" @click="loadLocaleOptions">Retry</button>
+        </div>
         <div class="owner-actions owner-editor-actions">
-          <button class="btn primary" :disabled="busy">{{ selection ? 'Save changes' : 'Create company and invite admin' }}</button>
+          <button class="btn primary" :disabled="busy || !localeOptions">{{ selection ? 'Save changes' : 'Create company and invite admin' }}</button>
           <button class="btn" type="button" :disabled="busy" @click="form = null">Cancel</button>
         </div>
       </form>

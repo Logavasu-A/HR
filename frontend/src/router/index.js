@@ -1,14 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import api from '@/shared/api'
-import { auth, can, isEmployee, setUser } from '@/shared/auth'
+import { auth, can, companyHomePath, isEmployee, setUser } from '@/shared/auth'
 import { resources, selfResources, featureRoutes } from '@/modules'
 import CrudPage from '@/shared/components/CrudPage.vue'
-
-function homePath() {
-  if (can('dashboard:read')) return '/dashboard'
-  if (isEmployee()) return '/my'
-  return '/change-password'
-}
 
 const companyRoutes = resources.map((r) => ({
   path: r.path, component: CrudPage, props: { config: r }, meta: { perm: `${r.perm}:read` },
@@ -18,7 +12,7 @@ const ownerChildren = [...companyRoutes, ...featureRoutes.filter((route) => owne
   .map(({ path, component, props }) => ({ path: path.slice(1), component, props }))
 
 const routes = [
-  { path: '/', redirect: () => homePath() },
+  { path: '/', redirect: () => companyHomePath() },
   ...featureRoutes,
   { path: '/platform/login', component: () => import('@/modules/platform/OwnerLogin.vue'), meta: { bare: true, open: true } },
   { path: '/platform', redirect: '/platform/control-tower' },
@@ -63,8 +57,8 @@ router.beforeEach(async (to) => {
     }
   }
 
-  if (to.meta.perm && !can(to.meta.perm)) return homePath()
-  if (to.meta.self && !isEmployee()) return homePath()
+  if (to.meta.perm && !can(to.meta.perm)) return companyHomePath()
+  if (to.meta.self && !isEmployee()) return companyHomePath()
   return true
 })
 

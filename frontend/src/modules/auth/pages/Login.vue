@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { login as loginRequest } from '../services/authService'
 import { setSession } from '@/shared/auth'
 import { errorMessage } from '@/shared/utils'
+import PageBackButton from '@/shared/components/PageBackButton.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -123,6 +124,7 @@ async function login() {
           <router-link to="/login" aria-current="page">Company</router-link>
           <router-link to="/platform/login">Platform</router-link>
         </nav>
+        <PageBackButton class="auth-page-back" public-page :disabled="busy" />
         <h1 id="company-sign-in-title">Welcome back</h1>
 
         <form class="auth-form" :aria-busy="busy" @submit.prevent="login">

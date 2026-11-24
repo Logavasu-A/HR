@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watchEffect } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Layout from '@/shared/components/Layout.vue'
+import SignOutDialog from '@/shared/components/SignOutDialog.vue'
 import PlatformState from './PlatformState.vue'
 
 const router = useRouter()
@@ -9,6 +10,8 @@ const route = useRoute()
 const session = ref(null)
 const error = ref('')
 const busy = ref(false)
+const confirmingSignOut = ref(false)
+const signOutError = ref('')
 const request = new AbortController()
 const towerUnavailable = computed(() => route.path === '/platform/control-tower' && session.value && !session.value.controlTower)
 
@@ -41,9 +44,19 @@ async function loadSession() {
   }
 }
 
+function requestSignOut() {
+  signOutError.value = ''
+  confirmingSignOut.value = true
+}
+
+function cancelSignOut() {
+  if (!busy.value) confirmingSignOut.value = false
+}
+
 async function logout() {
   if (busy.value) return
   busy.value = true
+  signOutError.value = ''
   const token = sessionStorage.getItem('hrms_platform_token')
   try {
     const response = await fetch('/api/platform/logout', {
@@ -54,7 +67,7 @@ async function logout() {
     if (sessionStorage.getItem('hrms_platform_token') === token) sessionStorage.removeItem('hrms_platform_token')
     await router.replace('/platform/login')
   } catch {
-    error.value = 'Sign-out did not complete. Try again.'
+    signOutError.value = 'Sign-out did not complete. Try again.'
   } finally {
     busy.value = false
   }
@@ -65,11 +78,13 @@ onBeforeUnmount(() => request.abort())
 </script>
 
 <template>
-  <Layout platform :platform-session="session" @platform-logout="logout">
+  <Layout platform :platform-session="session" @platform-logout="requestSignOut">
     <PlatformState v-if="error" kind="error" :title="error">
       <button v-if="!session" class="btn small" type="button" @click="loadSession">Retry</button>
     </PlatformState>
     <slot v-if="session && !towerUnavailable" />
     <PlatformState v-else-if="busy" kind="loading" title="Loading the platform console" />
   </Layout>
+  <SignOutDialog v-if="confirmingSignOut" platform :busy="busy" :error="signOutError"
+    @dismiss="cancelSignOut" @confirm="logout" />
 </template>

@@ -574,8 +574,6 @@ table.lines input[type="number"] {
 .table-wrapper { max-inline-size: 100%; min-inline-size: 0; }
 .data-table.responsive-table { min-inline-size: 0; }
 .data-table.lines { table-layout: fixed; }
-.slip-cols .data-table th.num { width: 1%; }
-.slip-cols .data-table td:not(.num) { white-space: normal; overflow-wrap: anywhere; }
 .data-table.responsive-table th { overflow-wrap: normal; }
 .data-table.responsive-table th:not(.actions-col) { white-space: normal; }
 .data-table.responsive-table td:not(.num, .actions) { white-space: normal; overflow-wrap: anywhere; }

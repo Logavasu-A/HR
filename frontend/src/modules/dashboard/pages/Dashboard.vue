@@ -165,10 +165,6 @@ onUnmounted(() => charts.forEach((c) => c.destroy()))
   <div class="legacy-dashboard">
     <div class="page-head dashboard-header">
       <h1>Dashboard</h1>
-      <div class="dashboard-badge">
-        <span class="live-dot" aria-hidden="true"></span>
-        Live Analytics
-      </div>
     </div>
     <div v-if="error" class="alert">{{ error }}</div>
     <p v-if="!data && !error" class="muted">Loading analytics…</p>
@@ -319,28 +315,7 @@ onUnmounted(() => charts.forEach((c) => c.destroy()))
 }
 
 .dashboard-header {
-  justify-content: space-between;
   margin: 0;
-}
-.dashboard-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  background: var(--card-bg);
-  border: 1px solid var(--line);
-  padding: 5px 12px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text);
-  box-shadow: var(--shadow-card);
-}
-.live-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--ok-line);
-  box-shadow: 0 0 8px var(--ok-line);
 }
 
 .stat--clickable {

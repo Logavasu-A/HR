@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import PageBackButton from '@/shared/components/PageBackButton.vue'
 
 const router = useRouter()
 const username = ref('')
@@ -20,7 +21,9 @@ onMounted(() => {
 })
 
 function checkCapsLock(event) {
-  capsOn.value = event.getModifierState('CapsLock')
+  if (typeof event.getModifierState === 'function') {
+    capsOn.value = event.getModifierState('CapsLock')
+  }
 }
 
 async function signIn() {
@@ -82,6 +85,7 @@ async function signIn() {
 
     <section class="panel" aria-labelledby="platform-sign-in">
       <form class="card" :aria-busy="loading" @submit.prevent="signIn">
+        <PageBackButton class="auth-page-back" public-page fallback="/login" :disabled="loading" />
         <h2 id="platform-sign-in">Super Admin sign-in</h2>
         <label for="owner-username">Username</label>
         <input id="owner-username" v-model.trim="username" type="text" autocomplete="username"

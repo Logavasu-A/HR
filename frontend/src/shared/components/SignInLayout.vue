@@ -1,4 +1,6 @@
 <script setup>
+import PageBackButton from './PageBackButton.vue'
+
 defineProps({
   title: { type: String, required: true },
   badge: { type: String, default: 'Enterprise Suite v2.0' },
@@ -53,6 +55,7 @@ defineProps({
     <section class="auth-content" aria-labelledby="auth-title">
       <div class="auth-card">
         <header class="auth-heading">
+          <PageBackButton class="auth-page-back" public-page fallback="/login" />
           <div class="auth-heading-badge">
             <span class="auth-heading-dot"></span>
             Authentication

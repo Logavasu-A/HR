@@ -88,10 +88,11 @@ public class AuthController {
         userMap.put("companyId", tenantId);
         try {
             List<Map<String, Object>> rows = jdbc.queryForList(
-                    "select name, code from company where id = ?", tenantId);
+                    "select name, code, currency from company where id = ?", tenantId);
             if (!rows.isEmpty()) {
                 userMap.put("companyName", rows.getFirst().get("name"));
                 userMap.put("companyCode", rows.getFirst().get("code"));
+                userMap.put("companyCurrency", rows.getFirst().get("currency"));
             }
         } catch (Exception ignored) {}
     }

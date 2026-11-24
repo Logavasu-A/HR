@@ -2,6 +2,8 @@ package modules.platform;
 
 import java.net.URI;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.util.Currency;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -131,6 +133,13 @@ public class PlatformCompanies {
     @GetMapping("/companies/{id}")
     public Map<String, Object> company(@PathVariable UUID id) {
         return onboarding.details(id);
+    }
+
+    @GetMapping("/companies/form-options")
+    public Map<String, List<String>> formOptions() {
+        return Map.of("timezones", ZoneId.getAvailableZoneIds().stream().sorted().toList(),
+                "currencies", Currency.getAvailableCurrencies().stream()
+                        .map(Currency::getCurrencyCode).sorted().toList());
     }
 
     @PostMapping("/companies")
