@@ -244,7 +244,7 @@ hr/
 ### Prerequisites
 * **Java:** JDK 21 (Eclipse Temurin, OpenJDK, or GraalVM)
 * **Node.js:** v20.x or v22.x with npm 10+
-* **Database:** PostgreSQL 18 running on port `5432` with database `hrms`
+* **Database:** PostgreSQL 18 running on port `5432` with the local restore `hrms_isolation_20261119`
 
 ### Credentials Reference
 
@@ -260,9 +260,9 @@ In a terminal, navigate to `backend` and run:
 
 ```powershell
 cd d:\myv1\hr\backend
-.\mvn.cmd spring-boot:run
+.\start-local-isolation.ps1
 ```
-*Backend runs on: `http://localhost:8080`*
+The launcher reads the local database password and RLS key from environment variables or the existing `backend/.local` secret files. It starts Spring Boot on `http://127.0.0.1:8081`, Vite’s default API proxy target.
 
 #### 2. Start the Frontend
 In a second terminal, navigate to `frontend` and run:

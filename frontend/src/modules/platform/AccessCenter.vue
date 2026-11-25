@@ -156,7 +156,7 @@ onMounted(() => run(async () => {
               <tr v-for="account in filteredAccounts" :key="account.id" role="row">
                 <td data-label="Account" role="cell"><strong class="table-cell-value">{{ account.username }}</strong></td>
                 <td data-label="Status" role="cell"><div class="table-cell-value"><span class="badge" :class="account.active ? 'active' : 'inactive'">{{ account.active ? 'Active' : 'Inactive' }}</span></div></td>
-                <td data-label="Role" role="cell"><span class="table-cell-value">{{ account.role ? pretty(account.role) : 'Unassigned' }}</span></td>
+                <td data-label="Role" role="cell"><div class="table-cell-value"><span class="access-role" :class="{ 'access-role-assigned': account.role && account.role !== 'UNASSIGNED' }">{{ account.role ? pretty(account.role) : 'Unassigned' }}</span></div></td>
                 <td class="actions" role="cell"><button v-if="editable(account)" class="btn small" type="button" :disabled="busy"
                   :aria-label="`Change role for ${account.username}`" aria-haspopup="dialog" @click="edit(account)">Change role</button></td>
               </tr>
@@ -231,6 +231,15 @@ onMounted(() => run(async () => {
 </template>
 
 <style scoped>
+.access-table th,
+.access-table td {
+  text-align: center !important;
+  vertical-align: middle !important;
+}
+.access-table th { white-space: nowrap !important; }
+.access-table td[data-label="Status"] { width: 8rem; }
+.access-table th.actions-col,
+.access-table td.actions { position: static !important; width: 9.5rem; }
 .access-card { padding: var(--platform-card-padding); margin-bottom: var(--space-16); }
 .access-card h2 { margin: 0 0 12px; }
 .access-table-heading { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }

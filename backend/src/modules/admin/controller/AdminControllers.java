@@ -160,8 +160,8 @@ public class AdminControllers {
             if (scope.abacEnabled()) out.addAll(CompanyRecordScope.MARKERS);
             return out;
         }
-    }
-
+    }       
+                     
     private static void check(Role role, TenantDatabaseScope scope) {
         CompanyRecordScope.checkDelegation(role.getPermissions(), scope.abacEnabled());
         EmployeeBankService.checkDelegation(role.getPermissions());

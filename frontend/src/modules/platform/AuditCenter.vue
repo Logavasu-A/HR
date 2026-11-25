@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { pretty } from '@/shared/utils'
 import PlatformState from './PlatformState.vue'
 import PlatformPageHeader from './PlatformPageHeader.vue'
+import AppDialog from '@/shared/components/AppDialog.vue'
 
 const router = useRouter()
 const filters = reactive({ companyId: '', source: '', outcome: '', search: '', from: '', until: '' })
@@ -188,7 +189,7 @@ onBeforeUnmount(() => {
               <td data-label="Event" role="cell"><div class="table-cell-value"><strong>{{ pretty(event.action) }}</strong><div class="muted">{{ pretty(event.source) }} · {{ event.operation }}</div></div></td>
               <td data-label="Actor" role="cell"><div class="table-cell-value">{{ event.actor || 'System' }}<div v-if="event.actor_role" class="muted">{{ pretty(event.actor_role) }}</div></div></td>
               <td data-label="Company" role="cell"><span class="table-cell-value">{{ event.company || 'Platform' }}</span></td>
-              <td data-label="Outcome" role="cell"><div class="table-cell-value"><span class="badge audit-status" :data-status="event.outcome">{{ pretty(event.outcome) }} · {{ event.status }}</span></div></td>
+              <td data-label="Outcome" role="cell"><div class="table-cell-value"><span class="badge audit-status" :data-status="event.outcome">{{ event.outcome === 'SUCCESS' ? 'Pass' : 'Fail' }}</span></div></td>
               <td class="actions" role="cell"><button class="btn small" type="button" @click="openDetail(event, $event.currentTarget)">{{ event.approval_id ? 'History' : 'View' }}</button></td>
             </tr>
           </tbody>
@@ -200,61 +201,98 @@ onBeforeUnmount(() => {
         <button class="btn small" type="button" :disabled="loading || !next" @click="load(page + 1)">Next</button>
       </footer>
     </section>
-    <section v-if="detail" class="card audit-detail" aria-labelledby="audit-detail-title">
-      <header class="page-head audit-header"><h2 id="audit-detail-title" ref="detailHeading" tabindex="-1">{{ heading }}</h2>
-        <button type="button" class="btn small" @click="dismissDetail">Close details</button></header>
-      <dl>
-        <dt>Operation</dt><dd>{{ detail.operation }}</dd>
-        <dt>Actor ID</dt><dd>{{ detail.actor_id || 'Unavailable' }}</dd>
-        <dt>Request ID</dt><dd>{{ detail.request_id || 'Unavailable' }}</dd>
-        <dt v-if="detail.workspace">Workspace ID</dt><dd v-if="detail.workspace">{{ detail.workspace }}</dd>
-        <dt v-if="detail.ip">IP address</dt><dd v-if="detail.ip">{{ detail.ip }}</dd>
-        <template v-if="detail.approval_id">
-          <dt>Approval ID</dt><dd>{{ detail.approval_id }}</dd>
-          <dt>Current status</dt><dd>{{ pretty(detail.approval_state) }}</dd>
-          <dt>Reason</dt><dd>{{ pretty(detail.reason) }}</dd>
-          <dt>Requester</dt><dd>{{ detail.maker }}</dd>
-          <dt>Reviewer</dt><dd>{{ detail.checker || 'Awaiting review' }}</dd>
-        </template>
-      </dl>
-      <p v-if="historyBusy && detail.approval_id" role="status">Loading approval history…</p>
-      <p v-if="historyError && detail.approval_id" class="alert" role="alert">{{ historyError }}</p>
-      <ol v-if="history.length" class="audit-timeline">
-        <li v-for="step in history" :key="step.key">
-          <strong>{{ pretty(step.action) }}</strong>
-          <div class="muted">{{ formatDate.format(new Date(step.occurred)) }} · {{ step.actor }}</div>
-        </li>
-      </ol>
-    </section>
+    <AppDialog v-if="detail" :title="heading" @dismiss="dismissDetail">
+      <div class="audit-detail-modal">
+        <div class="audit-detail-summary">
+          <span class="badge audit-status" :data-status="detail.outcome">{{ detail.outcome === 'SUCCESS' ? 'Pass' : 'Fail' }}</span>
+          <time class="muted" :datetime="detail.occurred">{{ formatDate.format(new Date(detail.occurred)) }}</time>
+        </div>
+        <dl class="audit-detail-grid">
+          <div class="audit-detail-item"><dt>Operation</dt><dd>{{ detail.operation }}</dd></div>
+          <div class="audit-detail-item"><dt>Actor</dt><dd>{{ detail.actor || 'System' }}</dd></div>
+          <div class="audit-detail-item"><dt>Actor ID</dt><dd>{{ detail.actor_id || 'Unavailable' }}</dd></div>
+          <div class="audit-detail-item"><dt>Company</dt><dd>{{ detail.company || 'Platform' }}</dd></div>
+          <div class="audit-detail-item"><dt>Request ID</dt><dd>{{ detail.request_id || 'Unavailable' }}</dd></div>
+          <div v-if="detail.workspace" class="audit-detail-item"><dt>Workspace ID</dt><dd>{{ detail.workspace }}</dd></div>
+          <div v-if="detail.ip" class="audit-detail-item"><dt>IP address</dt><dd>{{ detail.ip }}</dd></div>
+          <template v-if="detail.approval_id">
+            <div class="audit-detail-item"><dt>Approval ID</dt><dd>{{ detail.approval_id }}</dd></div>
+            <div class="audit-detail-item"><dt>Current status</dt><dd>{{ pretty(detail.approval_state) }}</dd></div>
+            <div class="audit-detail-item"><dt>Reason</dt><dd>{{ pretty(detail.reason) }}</dd></div>
+            <div class="audit-detail-item"><dt>Requester</dt><dd>{{ detail.maker }}</dd></div>
+            <div class="audit-detail-item"><dt>Reviewer</dt><dd>{{ detail.checker || 'Awaiting review' }}</dd></div>
+          </template>
+        </dl>
+        <div v-if="detail.approval_id" class="audit-history-section">
+          <p v-if="historyBusy" class="muted" role="status">Loading approval history…</p>
+          <p v-if="historyError" class="alert" role="alert">{{ historyError }}</p>
+          <template v-if="history.length">
+            <h3 class="audit-timeline-title">Approval timeline</h3>
+            <ol class="audit-timeline">
+              <li v-for="step in history" :key="step.key">
+                <strong>{{ pretty(step.action) }}</strong>
+                <div class="muted">{{ formatDate.format(new Date(step.occurred)) }} · {{ step.actor }}</div>
+              </li>
+            </ol>
+          </template>
+        </div>
+      </div>
+      <template #footer>
+        <button type="button" class="btn primary" @click="dismissDetail">Close</button>
+      </template>
+    </AppDialog>
   </section>
 </template>
 
 <style scoped>
+.audit-scroll th,
+.audit-scroll td {
+  text-align: center !important;
+  vertical-align: middle !important;
+}
+.audit-scroll th { white-space: nowrap !important; }
+.audit-scroll td[data-label="Outcome"] { width: 7.5rem; }
+.audit-scroll th.actions-col,
+.audit-scroll td.actions { position: static !important; width: 7.5rem; }
 .audit-center { container-type: inline-size; }
 .audit-header, .audit-actions, .audit-pagination { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .audit-header { justify-content: space-between; margin-bottom: 16px; }
 .audit-header h1, .audit-header h2, .audit-header p { margin: 0; }
 .audit-header p { margin-top: 4px; }
-.audit-filters { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-12); padding: var(--platform-card-padding); margin-bottom: var(--space-16); }
+.audit-filters { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-12) var(--space-16); padding: var(--platform-card-padding); margin-bottom: var(--space-16); }
 .audit-filters .field { margin: 0; min-width: 0; }
 .audit-filters input, .audit-filters select { inline-size: 100%; min-inline-size: 0; }
-.audit-filters .audit-actions { grid-column: 1 / -1; }
+.audit-filters .audit-actions { grid-column: 1 / -1; justify-content: flex-end; padding-top: 4px; }
 .audit-scroll .muted { font-size: 0.82rem; margin-top: 3px; }
 .audit-status[data-status=SUCCESS] { background: var(--ok-bg); color: var(--ok-text); }
 .audit-status[data-status=DENIED] { background: var(--warn-bg); color: var(--warn-text); }
 .audit-status[data-status=FAILED] { background: var(--bad-bg); color: var(--bad-text); }
-.audit-pagination { justify-content: flex-end; padding: 12px 14px; }
-.audit-log:has(.audit-scroll), .audit-detail { padding: var(--platform-card-padding); }
-.audit-detail { margin-top: var(--space-16); }
-.audit-detail dl { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
-.audit-detail dt { color: var(--muted); }
-.audit-detail dd { margin: 0; overflow-wrap: anywhere; }
-.audit-timeline { margin: 18px 0 0; padding: 0 0 0 14px; list-style: none; border-inline-start: 2px solid var(--line); }
+.audit-pagination { justify-content: flex-end; padding: 14px 16px 4px; border-top: 1px solid var(--line); }
+.audit-log:has(.audit-scroll) { padding: var(--platform-card-padding); }
+
+/* Audit Modal Enhancements */
+.audit-detail-modal { display: grid; gap: 16px; }
+.audit-detail-summary {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+  padding: 10px 14px; border-radius: var(--radius-sm); background: var(--page-bg); border: 1px solid var(--line);
+}
+.audit-detail-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 10px; margin: 0;
+}
+.audit-detail-item {
+  padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--card-bg);
+}
+.audit-detail-item dt { color: var(--muted); font-size: 12px; }
+.audit-detail-item dd { margin: 4px 0 0; font-weight: 600; overflow-wrap: anywhere; color: var(--text); }
+.audit-timeline-title { font-size: 14px; margin: 0 0 10px; color: var(--text); }
+.audit-timeline { margin: 0; padding: 0 0 0 16px; list-style: none; border-inline-start: 2px solid var(--line); }
 .audit-timeline li { position: relative; padding: 7px 0; }
-.audit-timeline li::before { content: ''; position: absolute; inset-inline-start: -19px; top: 13px; width: 8px; height: 8px; border-radius: 50%; background: var(--primary); }
+.audit-timeline li::before { content: ''; position: absolute; inset-inline-start: -21px; top: 13px; width: 8px; height: 8px; border-radius: 50%; background: var(--primary); }
 @media (min-width: 768px) {
   .audit-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .audit-detail dl { grid-template-columns: minmax(0, 10rem) minmax(0, 1fr); }
+}
+@media (min-width: 1024px) {
+  .audit-filters { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 @media (max-width: 600px) {
   .audit-header .audit-actions { width: 100%; }

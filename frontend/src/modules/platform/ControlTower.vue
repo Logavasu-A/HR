@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { MONTHS, pretty } from '@/shared/utils'
 import PlatformState from './PlatformState.vue'
 import PlatformPageHeader from './PlatformPageHeader.vue'
+import AppDialog from '@/shared/components/AppDialog.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -18,9 +19,18 @@ const sort = ref('employees')
 const metric = ref('workforce')
 const unlockOpen = ref(false)
 const financePassword = ref('')
+const showFinancePassword = ref(false)
 const financeError = ref('')
 const verifying = ref(false)
 let request
+
+function closeUnlockModal() {
+  if (verifying.value) return
+  unlockOpen.value = false
+  financePassword.value = ''
+  showFinancePassword.value = false
+  financeError.value = ''
+}
 
 const number = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 })
 const count = value => number.format(value ?? 0)
@@ -148,10 +158,11 @@ onBeforeUnmount(() => request?.abort())
         </router-link>
     </PlatformPageHeader>
 
-    <form class="card tower-period" aria-label="Reporting period" @submit.prevent="applyPeriod">
+    <form class="card tower-period" aria-label=" Reporting period " @submit.prevent="applyPeriod">
       <div class="period-context">
         <h2 class="period-title">Reporting period</h2>
         <small v-if="company" class="control-note">{{ company.code }} · {{ pretty(company.status) }} · {{ company.timezone }}</small>
+        
       </div>
       <div class="field">
         <label for="tower-year">Year</label>
@@ -164,7 +175,7 @@ onBeforeUnmount(() => request?.abort())
           <option v-for="(name, i) in MONTHS" :key="name" :value="String(i + 1)">{{ name }}</option>
         </select>
       </div>
-      <button class="btn small" type="submit" :disabled="loading">Apply period</button>
+      <button class="btn primary" type="submit" :disabled="loading">Apply period</button>
     </form>
 
     <PlatformState v-if="loading" kind="loading" title="Loading HR metrics" message="Fetching data for the selected period." />
@@ -245,18 +256,8 @@ onBeforeUnmount(() => request?.abort())
               <span v-if="data.payrollLocked" class="payroll-lock">Locked</span>
             </header>
             <template v-if="data.payrollLocked">
-              <p class="support-copy">Verify your password to view payroll totals.</p>
-              <button v-if="!unlockOpen" class="btn small" type="button" @click="unlockOpen = true">Unlock payroll totals</button>
-              <form v-else @submit.prevent="unlockPayroll">
-                <p v-if="financeError" class="alert" role="alert">{{ financeError }}</p>
-                <div class="field"><label for="tower-password">Current password</label>
-                  <input id="tower-password" v-model="financePassword" type="password" autocomplete="current-password" maxlength="72" required />
-                </div>
-                <div class="tower-actions">
-                  <button class="btn small primary" :disabled="verifying">{{ verifying ? 'Verifying…' : 'Verify' }}</button>
-                  <button class="btn small" type="button" :disabled="verifying" @click="unlockOpen = false; financePassword = ''; financeError = ''">Cancel</button>
-                </div>
-              </form>
+              <p class="support-copy">Verify your platform password to unlock submitted payroll totals.</p>
+              <button class="btn small primary" type="button" @click="unlockOpen = true">Unlock payroll totals</button>
             </template>
             <p v-else-if="!data.payroll.length" class="muted">No submitted payroll in this period.</p>
             <ul v-else class="tower-values">
@@ -276,17 +277,22 @@ onBeforeUnmount(() => request?.abort())
             </details>
           </section>
 
-          <section class="card tower-panel">
-            <h2>Alerts and notifications</h2>
+          <section class="card tower-panel alerts-panel">
+            <header class="tower-panel-head">
+              <h2>Alerts and notifications</h2>
+              <span v-if="invitationAlerts.length" class="badge pending">{{ invitationAlerts.length }} alerts</span>
+            </header>
             <dl class="alert-summary">
               <div><dt>Unread notifications</dt><dd>{{ count(total('unread')) }}</dd></div>
               <div><dt>Pending leave in period</dt><dd>{{ count(pendingLeave) }}</dd></div>
             </dl>
             <p v-if="!invitationAlerts.length" class="support-copy">No invitation alerts.</p>
-            <ul v-else class="tower-values">
+            <ul v-else class="tower-values tower-alerts-list">
               <li v-for="row in invitationAlerts" :key="row.id" class="invitation-row">
                 <router-link :to="{ query: { ...periodQuery, company: row.id } }">{{ row.name }}</router-link>
-                <span class="tower-alert">{{ row.invitationAlert === 'EXPIRED' ? 'Invitation expired' : 'Invitation delivery failed' }}</span>
+                <span class="badge tower-alert-badge" :class="row.invitationAlert === 'EXPIRED' ? 'pending' : 'rejected'">
+                  {{ row.invitationAlert === 'EXPIRED' ? 'Invitation expired' : 'Delivery failed' }}
+                </span>
               </li>
             </ul>
           </section>
@@ -319,16 +325,19 @@ onBeforeUnmount(() => request?.abort())
           </table>
           <table v-else class="data-table tower-table responsive-table data-table--records" role="table">
             <thead><tr>
-              <th scope="col">Company</th><th scope="col" class="num">Employees</th><th scope="col" class="num">Active</th><th scope="col" class="num">Worked share</th>
+              <th scope="col" class="company-col">Company</th><th scope="col" class="num">Employees</th><th scope="col" class="num">Active</th><th scope="col" class="num">Worked share</th>
               <th scope="col" class="num">Approved leave days</th><th scope="col" class="num">Applicants</th><th scope="col" class="num">Net payroll</th>
               <th scope="col" class="actions-col">Actions</th>
             </tr></thead>
             <tbody role="rowgroup">
               <tr v-for="row in filtered" :key="row.id" role="row">
-                <td data-label="Company" role="cell">
-                  <div class="table-cell-value">
-                    <router-link :to="{ path: '/platform/workspace', query: { company: row.id } }">{{ row.name }}</router-link>
-                    <small class="company-meta"><span class="badge" :class="row.status.toLowerCase()">{{ pretty(row.status) }}</span>{{ row.currency }}</small>
+                <td data-label="Company" class="company-cell" role="cell">
+                  <div class="table-cell-value company-cell-inner">
+                    <router-link class="company-name-link" :to="{ path: '/platform/workspace', query: { company: row.id } }">{{ row.name }}</router-link>
+                    <div class="company-meta">
+                      <span class="badge" :class="row.status.toLowerCase()">{{ pretty(row.status) }}</span>
+                      <span class="company-currency-tag">{{ row.currency }}</span>
+                    </div>
                   </div>
                 </td>
                 <td data-label="Employees" class="num" role="cell"><span class="table-cell-value">{{ count(row.employees) }}</span></td>
@@ -353,6 +362,30 @@ onBeforeUnmount(() => request?.abort())
         </details>
       </section>
     </template>
+
+    <AppDialog v-if="unlockOpen" title="Verify platform password" form @dismiss="closeUnlockModal" @submit="unlockPayroll">
+      <div class="unlock-modal-body" :aria-busy="verifying">
+        <p class="unlock-note">Enter your current Super Admin password to unlock submitted payroll totals for this session.</p>
+        <p v-if="financeError" class="alert" role="alert">{{ financeError }}</p>
+        <div class="field">
+          <label for="tower-password">Current password</label>
+          <div class="unlock-pw-wrap">
+            <input id="tower-password" v-model="financePassword" :type="showFinancePassword ? 'text' : 'password'"
+              autocomplete="current-password" maxlength="72" :disabled="verifying" required autofocus />
+            <button type="button" class="unlock-eye-btn" :disabled="verifying"
+              @click="showFinancePassword = !showFinancePassword">
+              {{ showFinancePassword ? 'Hide' : 'Show' }}
+            </button>
+          </div>
+        </div>
+      </div>
+      <template #footer>
+        <button class="btn" type="button" :disabled="verifying" @click="closeUnlockModal">Cancel</button>
+        <button class="btn primary" type="submit" :disabled="verifying || !financePassword">
+          {{ verifying ? 'Verifying…' : 'Verify & unlock' }}
+        </button>
+      </template>
+    </AppDialog>
   </section>
 </template>
 
@@ -369,38 +402,97 @@ onBeforeUnmount(() => request?.abort())
 .tower-period .field { margin: 0; }
 .tower-period :is(input, select) { width: 100%; min-width: 0; }
 .tower-period button { min-height: var(--platform-control-default); }
-.tower-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 178px), 1fr)); gap: 12px; }
-.kpi { padding: var(--platform-card-padding); display: grid; align-content: start; gap: 5px; min-width: 0; }
-.kpi:first-child { background: var(--primary-tint); border-color: var(--primary-tint-2); }
-.kpi p { margin: 0; color: var(--muted); }
-.kpi strong { font-size: 1.85rem; line-height: 1.2; font-variant-numeric: tabular-nums; letter-spacing: -.04em; }
+.tower-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 178px), 1fr)); gap: 14px; }
+.kpi {
+  padding: 18px 20px;
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  min-width: 0;
+  border-top: 3px solid var(--border);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.kpi:hover { transform: translateY(-1px); box-shadow: var(--shadow-menu); }
+.kpi:first-child { background: var(--primary-tint); border-color: var(--primary-tint-2); border-top-color: var(--primary); }
+.kpi:nth-child(2) { border-top-color: var(--ok-line); }
+.kpi:nth-child(3) { border-top-color: var(--accent-strong); }
+.kpi:nth-child(4) { border-top-color: var(--primary-hover); }
+.kpi:nth-child(5) { border-top-color: var(--bad-line); }
+.kpi p { margin: 0; color: var(--muted); font-size: 13px; font-weight: 500; }
+.kpi strong { font-size: 1.85rem; line-height: 1.15; font-variant-numeric: tabular-nums; letter-spacing: -.04em; color: var(--text); }
 .kpi small, .tower-values small, .tower-table small { color: var(--muted); }
-.tower-panels { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 16px; }
-.tower-side { display: grid; gap: 16px; min-width: 0; }
+.unlock-modal-body { display: grid; gap: 14px; }
+.unlock-modal-body .field, .unlock-modal-body .alert { margin: 0; }
+.unlock-note { margin: 0; color: var(--muted); font-size: 13.5px; line-height: 1.5; }
+.unlock-pw-wrap { position: relative; }
+.unlock-pw-wrap input { width: 100%; padding-right: 64px; }
+.unlock-eye-btn {
+  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+  height: 28px; padding: 0 8px; border: 0; background: transparent;
+  color: var(--primary); font: inherit; font-size: 12.5px; font-weight: 600;
+  cursor: pointer; border-radius: 6px;
+}
+.unlock-eye-btn:hover { background: var(--row-hover); }
+:global(.modal:has(.unlock-modal-body)) { inline-size: min(29rem, calc(100% - 2 * var(--modal-gutter))); }
+.tower-panels { display: grid; grid-template-columns: minmax(0, 1fr); align-items: stretch; gap: 16px; }
+.tower-side { display: grid; gap: 16px; min-width: 0; align-content: start; }
 .tower-panel { min-width: 0; padding: var(--platform-card-padding); }
 .tower-panel h2 { margin: 0; font-size: var(--platform-section-size); letter-spacing: -.015em; }
 .tower-panel-head { margin-bottom: 12px; }
 .tower-panel-head select { min-width: 0; max-width: 100%; width: auto; }
 .company-panel { overflow: hidden; }
+.company-panel .table-wrapper { border: 1px solid var(--line); border-radius: var(--radius-sm); overflow-x: auto; }
 
-
-.comparison-table .company-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
-.company-metrics-link { max-inline-size: 100%; }
+.tower-table th,
+.tower-table td {
+  text-align: center !important;
+  vertical-align: middle !important;
+  padding: 10px 12px !important;
+}
+.tower-table th {
+  white-space: nowrap !important;
+  font-size: 11.5px;
+  letter-spacing: 0.03em;
+}
+.tower-table td.num { text-align: center !important; }
+.tower-table th.actions-col,
+.tower-table td.actions {
+  position: static !important;
+  text-align: center !important;
+  width: 7.5rem;
+}
+.company-col { min-width: 175px; }
+.company-cell-inner { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.company-name-link { font-weight: 650; line-height: 1.3; }
+.company-meta { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 6px; margin-top: 0; }
+.company-currency-tag {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--page-bg);
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+.badge.suspended { background: var(--bad-bg); color: var(--bad-text); }
+.company-metrics-link { max-inline-size: 100%; white-space: nowrap; }
 .tower-table a { text-decoration: none; }
 .tower-table a:hover { text-decoration: underline; }
 .tower-legend, .tower-values { margin: 12px 0 0; padding: 0; list-style: none; }
 .tower-legend { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
 .tower-legend span { display: flex; align-items: center; gap: 7px; }
 .tower-legend i { width: 9px; height: 9px; border-radius: 3px; }
-.activity-panel { --chart-first: var(--primary); --chart-second: var(--text-muted); }
+.activity-panel { display: flex; flex-direction: column; --chart-first: var(--primary); --chart-second: var(--text-muted); }
 .activity-panel[data-metric=workforce] { --chart-first: var(--ok-line); --chart-second: var(--bad-line); }
 .activity-panel[data-metric=attendance] { --chart-second: var(--bad-line); }
 .activity-panel[data-metric=leave] { --chart-first: var(--accent-strong); --chart-second: var(--ok-line); }
 .tower-legend i, .chart-bar { background: var(--chart-first); }
 .tower-legend i.alternate, .chart-bar:nth-child(2) { background: var(--chart-second); }
 .chart-empty { margin: 14px 0 0; color: var(--muted); font-size: 13px; }
-.chart-scroll { container-type: inline-size; min-inline-size: 0; margin-top: 10px; border-radius: 6px; }
-.tower-chart { --plot-height: 11rem; position: relative; padding: 14px 10px 8px 34px; }
+.chart-scroll { container-type: inline-size; min-inline-size: 0; flex: 1; display: flex; flex-direction: column; justify-content: center; margin-top: 10px; border-radius: 6px; }
+.tower-chart { --plot-height: 15.5rem; position: relative; padding: 14px 10px 8px 34px; }
 .chart-guides { position: absolute; inset: 14px 10px auto 34px; height: var(--plot-height); display: flex; flex-direction: column; justify-content: space-between; pointer-events: none; }
 .chart-guides div { position: relative; border-top: 1px solid var(--line); height: 0; }
 .chart-guides span { position: absolute; inset-inline-end: calc(100% + 7px); top: 0; transform: translateY(-50%); color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
@@ -408,7 +500,7 @@ onBeforeUnmount(() => request?.abort())
 .chart-row { position: relative; min-width: 0; border-radius: 5px; }
 .chart-row:hover, .chart-row:focus-visible { background: var(--row-hover); z-index: 1; }
 .chart-bars { display: flex; height: var(--plot-height); align-items: end; justify-content: center; gap: 3px; padding-inline: 3px; }
-.chart-bar { display: block; width: min(28%, 21px); border-radius: 4px 4px 0 0; }
+.chart-bar { display: block; width: min(28%, 22px); border-radius: 4px 4px 0 0; transition: height 0.25s ease; }
 .chart-row time { display: block; text-align: center; color: var(--muted); font-size: 11px; padding-top: 7px; }
 .chart-tooltip { display: none; position: absolute; z-index: 2; top: 8px; left: 0; width: max-content; max-width: min(9rem, 40cqi); overflow-wrap: anywhere; padding: 7px 9px; border-radius: 7px; background: var(--ink); color: var(--card-bg); font-size: 12px; pointer-events: none; }
 .chart-tooltip span { display: flex; justify-content: space-between; gap: 8px; }
@@ -416,20 +508,21 @@ onBeforeUnmount(() => request?.abort())
 .chart-row:nth-child(n+7) .chart-tooltip { right: 4px; left: auto; }
 .support-copy { color: var(--muted); margin: 8px 0 12px; font-size: 13px; }
 .payroll-lock { display: inline-flex; align-items: center; gap: 6px; min-height: 24px; border-radius: 999px; background: var(--idle-bg); color: var(--idle-text); padding: 0 9px; font-size: 12px; font-weight: 650; }
-.alert-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 12px 0; }
-.alert-summary div { padding: 9px; border: 1px solid var(--line); border-radius: 8px; }
+.alert-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 12px 0; }
+.alert-summary div { padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--page-bg); }
 .alert-summary dt { color: var(--muted); font-size: 12px; }
-.alert-summary dd { margin: 5px 0 0; font-size: 1.15rem; font-weight: 700; }
+.alert-summary dd { margin: 4px 0 0; font-size: 1.2rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.tower-alerts-list { max-height: 195px; overflow-y: auto; padding-right: 4px; }
 .tower-amounts { display: grid; gap: 3px; }
-.tower-values li { display: flex; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); }
-.tower-values li:last-child { border-bottom: 0; }
+.tower-values li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+.tower-values li:last-child { border-bottom: 0; padding-bottom: 0; }
 .tower-values small, .tower-table small { display: block; }
-.invitation-row a { color: var(--primary-dark); text-decoration: none; overflow-wrap: anywhere; }
+.invitation-row a { color: var(--primary-dark); font-weight: 500; text-decoration: none; overflow-wrap: anywhere; }
 .invitation-row a:hover { text-decoration: underline; }
 .payroll-lock::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-.tower-alert { color: var(--warn-text); font-size: 12px; text-align: right; }
-.tower-details { margin-top: 10px; }
-.tower-details summary { cursor: pointer; }
+.tower-alert-badge { flex-shrink: 0; white-space: nowrap; font-size: 11px; }
+.tower-details { margin-top: 12px; }
+.tower-details summary { cursor: pointer; font-weight: 500; }
 .tower-table a, .tower-back { color: var(--primary-dark); font-weight: 650; }
 @container (width < 28rem) {
   .chart-bars { gap: 2px; padding-inline: 0; }

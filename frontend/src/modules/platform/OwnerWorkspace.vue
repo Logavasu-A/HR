@@ -297,6 +297,9 @@ onMounted(initialize)
 @media (min-width: 768px) {
   .workspace-switch { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+@media (min-width: 1024px) {
+  .workspace-switch { grid-template-columns: minmax(0, 10rem) minmax(0, 1.2fr) minmax(0, 1.5fr) auto; align-items: end; }
+}
 @media (width < 768px) {
   .workspace-actions { width: 100%; gap: var(--space-8); }
   .workspace-actions > .btn { flex: 1 1 auto; }
